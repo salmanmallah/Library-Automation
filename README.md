@@ -1,7 +1,7 @@
 
 <h1 align="center">Bar Code ISBN Scanner</h1>
 
-![QR Code Scanner](https://github.com/salmanpython06/ISBN_BARCODE_READER/blob/main/1.png)
+![QR Code Scanner](https://github.com/salmanmallah/Library-Automation/blob/main/1.png)
 
 
 ## Introduction
