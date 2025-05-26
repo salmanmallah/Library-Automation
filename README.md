@@ -1,5 +1,5 @@
 
-<h1 align="center">Bar Code ISBN Scanner</h1>
+<h1 align="center">Book Entry System Using Python OpenCV</h1>
 
 ![QR Code Scanner](https://github.com/salmanmallah/Library-Automation/blob/main/1.png)
 
