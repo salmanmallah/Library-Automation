@@ -1,89 +1,107 @@
+#!/usr/bin/env python3
 """
-        Code by: SalmanMallah
-        gmail: pythonsalman06@gmail.com
+Library Automation - Barcode / QR Book Cataloging System
+Production-grade scanner for automated library book inventory.
 """
-import cv2 # opencv
-import requests
-import numpy as np
-import pandas as pd
-import os 
-import pyzbar.pyzbar as pyzbar
-from csv import DictWriter
 
-isbn = ''
-cam = cv2.VideoCapture(0)
+import sys
+import signal
+import argparse
+from core.config import AppConfig, setup_logger
+from core.storage import StorageManager
+from core.book_service import BookService
 
-def datasave(isbn):
-    isbn = str(isbn)
-    isbn = isbn[2:-1]
+def parse_arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Library Automation: Real-time ISBN Barcode Scanner & Google Books Cataloger"
+    )
+    parser.add_argument(
+        "--camera",
+        type=int,
+        default=0,
+        help="Camera device index (default: 0)"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="library_catalog.csv",
+        help="Path to CSV catalog file (default: library_catalog.csv)"
+    )
+    parser.add_argument(
+        "--use-sqlite",
+        action="store_true",
+        help="Store records in SQLite database instead of CSV"
+    )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default="library_catalog.db",
+        help="Path to SQLite database file (default: library_catalog.db)"
+    )
+    parser.add_argument(
+        "--cooldown",
+        type=float,
+        default=3.0,
+        help="Cooldown in seconds before re-scanning the same ISBN (default: 3.0)"
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=5,
+        help="Google Books API request timeout in seconds (default: 5)"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable verbose debug logging"
+    )
+    return parser.parse_args()
 
-    # fetching the data using isbnlin
-    print(f"========={isbn}===========")
-    URL = "https://www.googleapis.com/books/v1/volumes?q=isbn:" + str(isbn)
-    # print(URL)
-    r = requests.get(url=URL)
-    data = r.json()
+def main():
+    args = parse_arguments()
+    logger = setup_logger(debug=args.debug)
+
+    logger.info("Initializing Library Automation System...")
+
     try:
-        # parsing the isbnlin response into required variables
-        book_info = data["items"][0]["volumeInfo"]
+        from core.scanner import BarcodeScanner
+    except ImportError as e:
+        logger.critical(
+            "Missing required dependencies (e.g., opencv-python or pyzbar). "
+            "Please run: pip install -r requirements.txt"
+        )
+        logger.debug(f"Import details: {e}")
+        sys.exit(1)
 
-        title = book_info.get("title")
-        authors = book_info.get("authors")
-        publish_date = book_info.get("publishedDate")
-        isbn = book_info.get("industryIdentifiers")[0]["identifier"]
-        description = book_info.get("description")
-        print("\n\n\n")
+    config = AppConfig(
+        camera_index=args.camera,
+        csv_file_path=args.output,
+        use_sqlite=args.use_sqlite,
+        db_file_path=args.db_path,
+        cooldown_seconds=args.cooldown,
+        api_timeout_seconds=args.timeout
+    )
 
-        table = {"title": title, "authors": authors, "isbn": isbn, "publish_date": publish_date, "description": description}
+    try:
+        storage = StorageManager(config)
+        book_service = BookService(config)
+        scanner = BarcodeScanner(config, storage, book_service)
 
-        # creating a data frame using panda
-        df = pd.DataFrame(table)
+        # Handle SIGINT and SIGTERM gracefully
+        def signal_handler(sig, frame):
+            logger.info("Termination signal received. Exiting gracefully...")
+            scanner.running = False
 
-        # appending book data into csv file
-        with open('book_data.csv', 'a', newline="") as wf:
-            dict_writer = DictWriter(wf, fieldnames=['title', 'authors', 'isbn', 'publish_date', 'description'])
-           
-            # checking if file has headers or not and adding the it if does not have
-            if os.stat('book_data.csv').st_size == 0:
-                dict_writer.writeheader()
-            
-            else:
-                read_csv = pd.read_csv("book_data.csv", dtype={"isbn": str})
-                '''By default, pandas interprets numeric columns in the CSV as numeric data types, and leading zeros in integers are ignored.
-                  This behavior is consistent with how integers are usually handled in programming languages like Python.
-                To preserve leading zeros in the ISBN numbers, you need to explicitly specify that the "isbn" column should be treated as a string (object) data type during the CSV read operation.
-                  You can do this by setting the dtype parameter of pd.read_csv()'''
-                
-                check_isbn = read_csv["isbn"].tolist()
-                print(check_isbn)
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
 
-                # checking if isbn number is already present in our file
-                if isbn in check_isbn:
-                    print("Book is already registered...")
-                
-                # if isbn is not already present, adding it
-                else:
-                    print(f"this isbn: {isbn} not matched")
-                    df.to_csv('book_data.csv', mode='a', header=False, index=False)
-    
-    except KeyError:
-        print("Invalid ISBN\nPlease Try again!")
- 
-# scanning QR Code from Camera
-while True:
-    _, frame = cam.read()
-    decodedObjects = pyzbar.decode(frame)
-    for obj in decodedObjects:
-        isbn = obj.data
+        success = scanner.run()
+        if not success:
+            sys.exit(1)
 
-        datasave(isbn)
-    cv2.imshow("Scan QR code Prehss ESC to quite.", frame)
-    key = cv2.waitKey(1)
+    except Exception as e:
+        logger.critical(f"Fatal error initializing application: {e}", exc_info=True)
+        sys.exit(1)
 
-    if key == 27:
-        print("You Quite the Screen")
-        break
-
-
-cam.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()

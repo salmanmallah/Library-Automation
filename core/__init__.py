@@ -1,0 +1,3 @@
+"""
+Library Automation Core Package
+"""
