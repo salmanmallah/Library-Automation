@@ -1,5 +1,7 @@
 # Library Automation: Real-Time Book Cataloging System (v2.0 Web)
 
+![Library Automation Banner](banner.png)
+
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Modern%20Web%20Framework-009688.svg)](https://fastapi.tiangolo.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green.svg)](https://opencv.org/)
