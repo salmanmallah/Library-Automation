@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUET Central Library - Smart Book Cataloging System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        muetNavy: '#0A0F1D',
+                        muetCard: '#111827',
+                        muetBorder: '#1F293D',
+                        muetGold: '#F59E0B',
+                        muetGoldHover: '#D97706',
+                        emeraldNeon: '#10B981',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #070B14;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0E1526;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #25334D;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #3B82F6;
+        }
+        @keyframes laserSweep {
+            0% { top: 4%; opacity: 0.8; }
+            50% { top: 88%; opacity: 1; }
+            100% { top: 4%; opacity: 0.8; }
+        }
+        .laser-beam {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background: linear-gradient(90deg, rgba(245,158,11,0) 0%, rgba(245,158,11,1) 50%, rgba(245,158,11,0) 100%);
+            box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.9);
+            animation: laserSweep 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-live {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes cardPop {
+            0% { transform: scale(0.95) translateY(10px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .animate-card-in {
+            animation: cardPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar: MUET Central Library Branding -->
+    <header class="border-b border-gray-800 bg-[#0B101E]/95 backdrop-blur sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-2.5 flex items-center justify-between">
+            <div class="flex items-center space-x-3.5">
+                <!-- University Crest / Icon -->
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 via-amber-600 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-extrabold text-xl">
+                    <i data-lucide="graduation-cap" class="w-6 h-6 text-slate-950"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight text-white">
+                            MUET Central Library
+                        </h1>
+                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            Smart Cataloger v2.4
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-400">Mehran University of Engineering & Technology, Jamshoro</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-3">
+                <!-- Camera ON / OFF Toggle Button -->
+                <button id="cameraToggleBtn" onclick="toggleCameraPower()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition shadow-sm">
+                    <span id="cameraStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                    <span id="cameraToggleText">Camera: ON</span>
+                </button>
+
+                <!-- Sound Toggle -->
+                <button id="soundToggle" onclick="toggleSound()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-gray-800/90 hover:bg-gray-700 border border-gray-700 transition">
+                    <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="soundText" class="text-gray-200">Sound: ON</span>
+                </button>
+
+                <!-- Export CSV Button -->
+                <a href="/api/export" download="MUET_Library_Catalog.csv" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 transition">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full flex flex-col gap-6">
+
+        <!-- Top Dual Grid: Camera Stream & Samsung-Style Live Capture Rail -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Left: Video Viewfinder & Camera Controls (6 Cols) -->
+            <div class="lg:col-span-6 flex flex-col gap-3">
+                <div class="bg-[#0E1526] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
+                    <!-- Live Header Badge -->
+                    <div class="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs">
+                        <span id="streamIndicatorDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-live"></span>
+                        <span id="streamIndicatorText" class="font-semibold text-emerald-400">LENS ACTIVE</span>
+                    </div>
+
+                    <!-- Video Container -->
+                    <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+                        <img id="videoStream" src="/video_feed" alt="MUET Video Feed" class="w-full h-full object-contain" onerror="onStreamError(this)" />
+                        
+                        <!-- Fallback Reconnect Overlay -->
+                        <div id="reconnectBanner" class="hidden absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-3">
+                            <i data-lucide="camera-off" class="w-12 h-12 text-rose-500 animate-pulse"></i>
+                            <p class="text-sm font-medium text-gray-300">Camera Stream Connecting or Paused...</p>
+                            <button onclick="reloadStream()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition">Refresh Feed</button>
+                        </div>
+                    </div>
+
+                    <!-- Camera Control Bar -->
+                    <div class="p-3.5 bg-[#0E1526] border-t border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
+                        <div class="flex items-center gap-2 flex-1 min-w-[220px]">
+                            <i data-lucide="video" class="w-4 h-4 text-gray-400"></i>
+                            <input id="cameraSourceInput" type="text" value="http://127.0.0.1:8080/video" placeholder="e.g. http://127.0.0.1:8080/video or 0" class="bg-gray-800 border border-gray-700 text-xs rounded-lg px-3 py-2 flex-1 focus:outline-none focus:border-amber-500 text-gray-200" />
+                            <button onclick="switchCameraSource()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs font-semibold rounded-lg transition text-amber-400">Switch</button>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="setCameraQuick('http://127.0.0.1:8080/video')" class="px-2.5 py-1.5 bg-gray-800/80 hover:bg-gray-700 text-[11px] rounded border border-gray-700 text-gray-300">ADB Phone</button>
+                            <button onclick="setCameraQuick('0')" class="px-2.5 py-1.5 bg-gray-800/80 hover:bg-gray-700 text-[11px] rounded border border-gray-700 text-gray-300">USB 0</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Barcode Input Bar -->
+                <div class="bg-[#0E1526] border border-gray-800 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 flex-1">
+                        <i data-lucide="barcode" class="w-5 h-5 text-amber-400"></i>
+                        <input id="manualIsbnInput" type="text" placeholder="Damaged barcode? Type 10 or 13-digit ISBN..." class="bg-gray-800/90 border border-gray-700 text-xs rounded-lg px-3 py-2 flex-1 focus:outline-none focus:border-amber-500 text-gray-200 font-mono" onkeydown="if(event.key==='Enter') submitManualScan()" />
+                        <button onclick="submitManualScan()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                            Add Book
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Samsung-Style Real-time Barcode Snapshot Stream (6 Cols) -->
+            <div class="lg:col-span-6 flex flex-col gap-3">
+
+                <!-- Header & Live Counter -->
+                <div class="bg-[#0E1526] border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+                            <i data-lucide="scan" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xs uppercase tracking-wider text-white">Live Barcode Captures</h3>
+                            <p class="text-[11px] text-gray-400">Click any card to inspect physical barcode</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span id="statQueueCount" class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            4 Workers Ready
+                        </span>
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            <span id="statTotalBooks">0</span> Books
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Barcode Snapshots Feed Container (Fixed non-squishing layout) -->
+                <div id="barcodeFeedContainer" class="bg-[#0E1526] border border-gray-800 rounded-2xl p-4 flex flex-col gap-3.5 h-[420px] overflow-y-auto custom-scrollbar">
+                    
+                    <!-- Empty Placeholder State -->
+                    <div id="emptyFeedPlaceholder" class="m-auto flex flex-col items-center justify-center py-10 text-center text-gray-500">
+                        <div class="w-16 h-16 rounded-2xl bg-gray-800/50 border border-gray-700/50 flex items-center justify-center text-amber-400/60 mb-3">
+                            <i data-lucide="scan-barcode" class="w-8 h-8 animate-pulse"></i>
+                        </div>
+                        <h4 class="text-sm font-semibold text-gray-300">Point Camera at Book Barcode(s)</h4>
+                        <p class="text-xs text-gray-500 mt-1 max-w-[280px]">
+                            Physical barcode snapshots will appear here in real-time. Click any card to zoom and verify!
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Bottom: MUET Central Library Database Table -->
+        <div class="bg-[#0E1526] border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                        <i data-lucide="book-marked" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-white">
+                            MUET Central Library Inventory Catalog
+                        </h2>
+                        <p class="text-xs text-gray-400">Real-time persistent database records</p>
+                    </div>
+                </div>
+
+                <!-- Table Search Filter -->
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-400"></i>
+                        <input id="searchInput" oninput="filterCatalog()" type="text" placeholder="Search by title, author, or ISBN..." class="bg-gray-800/80 border border-gray-700 text-xs rounded-lg pl-9 pr-4 py-2 w-64 focus:outline-none focus:border-amber-500 text-gray-200" />
+                    </div>
+                    <button onclick="loadBooksCatalog()" title="Refresh Catalog" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300">
+                        <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto custom-scrollbar border border-gray-800 rounded-xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-800/70 text-gray-300 uppercase text-[10px] tracking-wider border-b border-gray-700">
+                        <tr>
+                            <th class="px-4 py-3">Cover</th>
+                            <th class="px-4 py-3">ISBN</th>
+                            <th class="px-4 py-3">Title</th>
+                            <th class="px-4 py-3">Authors</th>
+                            <th class="px-4 py-3">Publisher & Year</th>
+                            <th class="px-4 py-3">Category</th>
+                            <th class="px-4 py-3">Scanned Time</th>
+                            <th class="px-4 py-3 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogTableBody" class="divide-y divide-gray-800/60 font-normal">
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-gray-500">Loading catalog items...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- PHYSICAL BARCODE INSPECTION MODAL (Click on any barcode card to verify) -->
+    <div id="barcodeInspectorModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md hidden transition-all duration-300">
+        <div class="bg-[#0F172A] border-2 border-amber-500/70 rounded-3xl p-6 shadow-2xl max-w-lg w-full relative">
+            <!-- Close Button -->
+            <button onclick="closeBarcodeModal()" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full bg-gray-800 hover:bg-gray-700 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Modal Header -->
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                    <i data-lucide="scan-line" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white leading-tight">Physical Barcode Inspector</h3>
+                    <p class="text-xs text-amber-400 font-medium">MUET Central Library Verification Lens</p>
+                </div>
+            </div>
+
+            <!-- Full-size Physical Barcode Snapshot Display -->
+            <div class="bg-black/90 border border-gray-700 rounded-2xl p-3 flex flex-col items-center justify-center mb-4 relative overflow-hidden">
+                <div class="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2 flex items-center gap-1.5 self-start">
+                    <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i>
+                    Actual Captured Camera Snapshot
+                </div>
+                <div class="w-full max-h-48 rounded-xl overflow-hidden flex items-center justify-center bg-gray-950 p-2 border border-gray-800">
+                    <img id="modalBarcodeImg" src="" alt="Physical Barcode" class="max-h-44 w-auto object-contain rounded" />
+                </div>
+            </div>
+
+            <!-- Verified Book Metadata Card in Modal -->
+            <div class="bg-[#1E293B]/70 border border-gray-700 rounded-2xl p-4 flex items-start gap-4">
+                <div id="modalCoverContainer" class="flex-shrink-0">
+                    <!-- Dynamic cover image -->
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span id="modalIsbn" class="font-mono text-xs font-bold text-amber-400">
+                            ISBN: 978...
+                        </span>
+                        <span id="modalStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            Verified & Cataloged
+                        </span>
+                    </div>
+                    <h4 id="modalTitle" class="text-sm font-bold text-white line-clamp-2 leading-snug">Book Title</h4>
+                    <p id="modalAuthor" class="text-xs text-gray-300 mt-1"><span class="text-gray-500">Author:</span> Author Name</p>
+                    <p id="modalPublisher" class="text-xs text-gray-400 mt-0.5"><span class="text-gray-500">Publisher:</span> Publisher (Year)</p>
+                    <p id="modalTimestamp" class="text-[11px] text-gray-500 mt-2">Scanned: Just now</p>
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button onclick="closeBarcodeModal()" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition">
+                    Done Inspecting
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Audio Scanner Beep Chime -->
+    <script>
+        let soundEnabled = true;
+        let lastBeepTime = 0;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playScannerBeep() {
+            if (!soundEnabled) return;
+            const now = Date.now();
+            if (now - lastBeepTime < 180) return;
+            lastBeepTime = now;
+
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1800, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch (e) {
+                console.error("Audio error:", e);
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundText').innerText = soundEnabled ? "Sound: ON" : "Sound: OFF";
+            document.getElementById('soundIcon').className = soundEnabled ? "w-4 h-4 text-emerald-400" : "w-4 h-4 text-gray-500";
+        }
+    </script>
+
+    <!-- App State and Samsung-Style Barcode Snapshot Engine -->
+    <script>
+        let allBooks = [];
+        const activeBarcodeCards = new Map(); // isbn -> DOM element
+        const barcodeSnapshotStore = new Map(); // isbn -> { barcodeImage, book, status, timestamp }
+
+        function openBarcodeInspector(isbn) {
+            const data = barcodeSnapshotStore.get(isbn);
+            if (!data) return;
+
+            const modal = document.getElementById('barcodeInspectorModal');
+            document.getElementById('modalIsbn').innerText = `ISBN: ${isbn}`;
+            document.getElementById('modalBarcodeImg').src = data.barcodeImage || "";
+
+            const statusBadge = document.getElementById('modalStatusBadge');
+            const titleEl = document.getElementById('modalTitle');
+            const authorEl = document.getElementById('modalAuthor');
+            const pubEl = document.getElementById('modalPublisher');
+            const coverContainer = document.getElementById('modalCoverContainer');
+            const timeEl = document.getElementById('modalTimestamp');
+
+            timeEl.innerText = `Captured: ${data.timestamp || 'Today'}`;
+
+            if (data.status === 'verified' && data.book) {
+                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                statusBadge.innerText = "Verified & Saved";
+                titleEl.innerText = data.book.title;
+                authorEl.innerHTML = `<span class="text-gray-500">Author:</span> ${data.book.authors || 'Unknown'}`;
+                pubEl.innerHTML = `<span class="text-gray-500">Publisher:</span> ${data.book.publisher || 'N/A'} (${data.book.publish_date || 'N/A'})`;
+
+                if (data.book.cover_image_url) {
+                    coverContainer.innerHTML = `<img src="${data.book.cover_image_url}" class="w-16 h-24 object-cover rounded-lg shadow-md border border-gray-700" />`;
+                } else {
+                    coverContainer.innerHTML = `<div class="w-16 h-24 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 border border-gray-700"><i data-lucide="book" class="w-6 h-6"></i></div>`;
+                }
+            } else if (data.status === 'already_registered') {
+                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30";
+                statusBadge.innerText = "Already Cataloged";
+                titleEl.innerText = data.book?.title || "Book Already In Catalog";
+                authorEl.innerHTML = `<span class="text-gray-500">Status:</span> Duplicate barcode`;
+                pubEl.innerHTML = `<span class="text-gray-500">Registry:</span> MUET Central Library`;
+                coverContainer.innerHTML = `<div class="w-16 h-24 bg-blue-950/40 rounded-lg flex items-center justify-center text-blue-400 border border-blue-800"><i data-lucide="check-circle" class="w-6 h-6"></i></div>`;
+            } else {
+                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                statusBadge.innerText = "Unverified Barcode";
+                titleEl.innerText = "Not Found in Public Book Databases";
+                authorEl.innerHTML = `<span class="text-gray-500">Action:</span> Discarded`;
+                pubEl.innerHTML = `<span class="text-gray-500">Note:</span> Might be non-book barcode`;
+                coverContainer.innerHTML = `<div class="w-16 h-24 bg-rose-950/40 rounded-lg flex items-center justify-center text-rose-400 border border-rose-800"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>`;
+            }
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeBarcodeModal() {
+            document.getElementById('barcodeInspectorModal').classList.add('hidden');
+        }
+
+        function addBarcodeSnapshotCard(isbn, barcodeImageB64, timeStr) {
+            const container = document.getElementById('barcodeFeedContainer');
+            const placeholder = document.getElementById('emptyFeedPlaceholder');
+            if (placeholder) placeholder.classList.add('hidden');
+
+            // Store snapshot
+            barcodeSnapshotStore.set(isbn, {
+                barcodeImage: barcodeImageB64,
+                book: null,
+                status: 'scanning',
+                timestamp: timeStr || new Date().toLocaleTimeString()
+            });
+
+            // If card already exists for this ISBN in feed, don't duplicate
+            if (activeBarcodeCards.has(isbn)) {
+                return activeBarcodeCards.get(isbn);
+            }
+
+            const card = document.createElement('div');
+            card.id = `card-${isbn}`;
+            card.onclick = () => openBarcodeInspector(isbn);
+            // Notice: flex-shrink-0 and min-h-[84px] PREVENT SQUISHING!
+            card.className = "bg-[#141C30] border border-amber-500/50 hover:border-amber-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
+
+            const barcodeImgHtml = barcodeImageB64 ?
+                `<div class="relative w-24 h-14 bg-black rounded-lg overflow-hidden border border-amber-500/60 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition">
+                    <img src="${barcodeImageB64}" class="w-full h-full object-cover" />
+                    <!-- Laser Scanning Sweep Line -->
+                    <div id="laser-${isbn}" class="laser-beam"></div>
+                </div>` :
+                `<div class="relative w-24 h-14 bg-gray-800 rounded-lg border border-amber-500/60 flex-shrink-0 flex items-center justify-center text-amber-400 group-hover:scale-105 transition">
+                    <i data-lucide="barcode" class="w-7 h-7"></i>
+                    <div id="laser-${isbn}" class="laser-beam"></div>
+                </div>`;
+
+            card.innerHTML = `
+                ${barcodeImgHtml}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="font-mono text-xs font-bold text-amber-400 tracking-tight">${isbn}</span>
+                        <span id="status-badge-${isbn}" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25 flex-shrink-0">
+                            Verifying...
+                        </span>
+                    </div>
+                    <h4 id="title-${isbn}" class="text-xs font-semibold text-gray-200 truncate">Searching MUET Library & OpenLibrary...</h4>
+                    <div class="flex items-center justify-between text-[11px] text-gray-500 mt-1">
+                        <span id="meta-${isbn}">${timeStr || 'Just now'}</span>
+                        <span class="text-[10px] text-gray-400 group-hover:text-amber-400 flex items-center gap-1">
+                            <i data-lucide="zoom-in" class="w-3 h-3"></i> Inspect
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Insert at the top of feed (newest first)
+            container.insertBefore(card, container.firstChild);
+            activeBarcodeCards.set(isbn, card);
+            lucide.createIcons();
+
+            return card;
+        }
+
+        function updateBarcodeCardState(isbn, state, data) {
+            let card = activeBarcodeCards.get(isbn);
+            if (!card) {
+                card = addBarcodeSnapshotCard(isbn, data?.barcode_image || "", "Just now");
+            }
+
+            // Update stored snapshot data
+            const existing = barcodeSnapshotStore.get(isbn) || {};
+            existing.status = state;
+            if (data?.book) existing.book = data.book;
+            if (data?.barcode_image) existing.barcodeImage = data.barcode_image;
+            barcodeSnapshotStore.set(isbn, existing);
+
+            const laser = document.getElementById(`laser-${isbn}`);
+            const badge = document.getElementById(`status-badge-${isbn}`);
+            const titleEl = document.getElementById(`title-${isbn}`);
+            const metaEl = document.getElementById(`meta-${isbn}`);
+
+            if (state === 'verified') {
+                // Success: Green Border & Glow (Solid min-h-[84px] and flex-shrink-0 preserved!)
+                card.className = "bg-[#101D2D] border-2 border-emerald-500/70 hover:border-emerald-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-lg flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
+                if (laser) laser.remove();
+
+                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0";
+                badge.innerText = "Verified & Saved";
+
+                titleEl.className = "text-xs font-bold text-white truncate";
+                titleEl.innerText = data.book.title;
+
+                metaEl.className = "text-[11px] text-gray-400 truncate";
+                metaEl.innerText = `${data.book.authors || 'Unknown'} • ${data.book.publisher || 'N/A'}`;
+
+            } else if (state === 'already_registered') {
+                // Already in catalog: Blue/Cyan
+                card.className = "bg-[#141C30] border border-blue-500/50 hover:border-blue-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
+                if (laser) laser.remove();
+
+                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 flex-shrink-0";
+                badge.innerText = "Already Cataloged";
+
+                titleEl.className = "text-xs font-semibold text-gray-300 truncate";
+                titleEl.innerText = "Book already exists in MUET Library database";
+                metaEl.innerText = "Duplicate scan ignored";
+
+            } else if (state === 'not_found') {
+                // Unverified: Red
+                card.className = "bg-[#1E141B] border border-rose-500/50 hover:border-rose-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
+                if (laser) laser.remove();
+
+                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25 flex-shrink-0";
+                badge.innerText = "No Registry Match";
+
+                titleEl.className = "text-xs font-semibold text-gray-400 truncate";
+                titleEl.innerText = "Not found in public book databases";
+                metaEl.innerText = "Ignored to prevent catalog pollution";
+            }
+
+            lucide.createIcons();
+        }
+
+        async function toggleCameraPower() {
+            try {
+                const res = await fetch('/api/camera/toggle', { method: 'POST' });
+                const data = await res.json();
+                const btn = document.getElementById('cameraToggleBtn');
+                const dot = document.getElementById('cameraStatusDot');
+                const txt = document.getElementById('cameraToggleText');
+                const streamTxt = document.getElementById('streamIndicatorText');
+                const streamDot = document.getElementById('streamIndicatorDot');
+
+                if (data.is_paused) {
+                    btn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition shadow-sm";
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                    txt.innerText = "Camera: OFF (Click to Resume)";
+                    streamTxt.innerText = "SCANNER PAUSED";
+                    streamTxt.className = "font-semibold text-rose-400";
+                    streamDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                } else {
+                    btn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition shadow-sm";
+                    dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+                    txt.innerText = "Camera: ON";
+                    streamTxt.innerText = "LENS ACTIVE";
+                    streamTxt.className = "font-semibold text-emerald-400";
+                    streamDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-live";
+                    reloadStream();
+                }
+            } catch (err) {
+                alert("Error toggling camera: " + err);
+            }
+        }
+
+        async function loadBooksCatalog() {
+            try {
+                const res = await fetch('/api/books');
+                if (res.ok) {
+                    allBooks = await res.json();
+                    renderCatalogTable(allBooks);
+                    document.getElementById('statTotalBooks').innerText = allBooks.length;
+                }
+            } catch (err) {
+                console.error("Failed to load catalog:", err);
+            }
+        }
+
+        function renderCatalogTable(books) {
+            const tbody = document.getElementById('catalogTableBody');
+            if (!books || books.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-500">No books registered yet. Point camera at barcode to scan!</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = books.map(b => `
+                <tr class="hover:bg-gray-800/40 transition">
+                    <td class="px-4 py-2.5">
+                        ${b.cover_image_url ? 
+                            `<img src="${b.cover_image_url}" class="w-8 h-11 object-cover rounded shadow border border-gray-700" />` : 
+                            `<div class="w-8 h-11 bg-gray-800 rounded flex items-center justify-center text-gray-500"><i data-lucide="book" class="w-4 h-4"></i></div>`}
+                    </td>
+                    <td class="px-4 py-2.5 font-mono text-[11px] text-amber-400 font-semibold">${b.isbn}</td>
+                    <td class="px-4 py-2.5 font-semibold text-gray-200 max-w-[200px] truncate" title="${b.title}">${b.title}</td>
+                    <td class="px-4 py-2.5 text-gray-300 max-w-[150px] truncate">${b.authors}</td>
+                    <td class="px-4 py-2.5 text-gray-400">${b.publisher || 'N/A'} <span class="text-gray-500">(${b.publish_date || 'N/A'})</span></td>
+                    <td class="px-4 py-2.5 text-gray-400 max-w-[120px] truncate">${b.categories || 'General'}</td>
+                    <td class="px-4 py-2.5 text-gray-500 text-[11px] whitespace-nowrap">${b.scanned_at}</td>
+                    <td class="px-4 py-2.5 text-right">
+                        <button onclick="deleteBook('${b.isbn}')" title="Delete record" class="p-1.5 hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 rounded transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function filterCatalog() {
+            const q = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!q) {
+                renderCatalogTable(allBooks);
+                return;
+            }
+            const filtered = allBooks.filter(b => 
+                (b.title && b.title.toLowerCase().includes(q)) ||
+                (b.isbn && b.isbn.toLowerCase().includes(q)) ||
+                (b.authors && b.authors.toLowerCase().includes(q))
+            );
+            renderCatalogTable(filtered);
+        }
+
+        async function deleteBook(isbn) {
+            if (!confirm(`Are you sure you want to delete ISBN ${isbn} from MUET Catalog?`)) return;
+            try {
+                const res = await fetch(`/api/books/${isbn}`, { method: 'DELETE' });
+                if (res.ok) {
+                    allBooks = allBooks.filter(b => b.isbn !== isbn);
+                    renderCatalogTable(allBooks);
+                    document.getElementById('statTotalBooks').innerText = allBooks.length;
+                }
+            } catch (err) {
+                alert("Error deleting book: " + err);
+            }
+        }
+
+        async function submitManualScan() {
+            const input = document.getElementById('manualIsbnInput');
+            const isbn = input.value.trim();
+            if (!isbn) return;
+
+            try {
+                const res = await fetch('/api/scan_manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isbn })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    playScannerBeep();
+                    updateBarcodeCardState(isbn, 'verified', data);
+                    loadBooksCatalog();
+                } else {
+                    alert(data.message || "Failed to lookup ISBN");
+                }
+            } catch (err) {
+                alert("Scan error: " + err);
+            }
+        }
+
+        async function switchCameraSource() {
+            const input = document.getElementById('cameraSourceInput');
+            const source = input.value.trim();
+            if (!source) return;
+
+            try {
+                const res = await fetch('/api/camera/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    reloadStream();
+                } else {
+                    alert("Could not switch camera source: " + data.message);
+                }
+            } catch (err) {
+                alert("Switch error: " + err);
+            }
+        }
+
+        function setCameraQuick(src) {
+            document.getElementById('cameraSourceInput').value = src;
+            switchCameraSource();
+        }
+
+        function reloadStream() {
+            const img = document.getElementById('videoStream');
+            const banner = document.getElementById('reconnectBanner');
+            banner.classList.add('hidden');
+            img.src = '/video_feed?t=' + new Date().getTime();
+        }
+
+        function onStreamError(el) {
+            document.getElementById('reconnectBanner').classList.remove('hidden');
+        }
+
+        // Setup Real-time WebSocket for Samsung Lens Multi-Scan Events
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    const qCounter = document.getElementById('statQueueCount');
+
+                    if (data.type === 'barcode_captured') {
+                        // Immediately render physical cropped barcode with animated laser scan
+                        addBarcodeSnapshotCard(data.isbn, data.barcode_image, data.timestamp);
+                    } else if (data.type === 'book_saved') {
+                        // Transition card to Verified Green with book details
+                        playScannerBeep();
+                        updateBarcodeCardState(data.isbn, 'verified', data);
+                        loadBooksCatalog();
+
+                        const rem = data.queue_remaining || 0;
+                        if (rem > 0) {
+                            qCounter.innerText = `${rem} in Queue`;
+                            qCounter.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                        } else {
+                            qCounter.innerText = "4 Workers Ready";
+                            qCounter.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                        }
+                    } else if (data.type === 'already_registered') {
+                        updateBarcodeCardState(data.isbn, 'already_registered', data);
+                    } else if (data.type === 'not_found') {
+                        updateBarcodeCardState(data.isbn, 'not_found', data);
+                    }
+                } catch (e) {
+                    console.error("WS message parse error:", e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("WebSocket disconnected. Reconnecting in 2s...");
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            loadBooksCatalog();
+            connectWebSocket();
+        };
+
+        // Close modal on Escape key press
+        window.onkeydown = (e) => {
+            if (e.key === 'Escape') closeBarcodeModal();
+        };
+    </script>
+</body>
+</html>

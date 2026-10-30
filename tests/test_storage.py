@@ -20,7 +20,8 @@ class TestStorageManager(unittest.TestCase):
             page_count=464,
             categories="Computers",
             description="A Handbook of Agile Software Craftsmanship",
-            scanned_at="2026-10-30 12:00:00"
+            scanned_at="2026-10-30 12:00:00",
+            cover_image_url="https://covers.openlibrary.org/b/id/15126503-M.jpg"
         )
 
     def tearDown(self):
@@ -45,6 +46,15 @@ class TestStorageManager(unittest.TestCase):
         # Re-initialize storage from disk and verify persistence
         new_storage = StorageManager(config)
         self.assertTrue(new_storage.is_registered("9780132350884"))
+        books = new_storage.get_all_books()
+        self.assertEqual(len(books), 1)
+        self.assertEqual(books[0]["title"], "Clean Code")
+
+        # Test delete
+        deleted = new_storage.delete_book("9780132350884")
+        self.assertTrue(deleted)
+        self.assertFalse(new_storage.is_registered("9780132350884"))
+        self.assertEqual(len(new_storage.get_all_books()), 0)
 
     def test_sqlite_storage_and_deduplication(self):
         config = AppConfig(db_file_path=self.db_path, use_sqlite=True)
@@ -59,6 +69,15 @@ class TestStorageManager(unittest.TestCase):
         # Re-initialize and check
         new_storage = StorageManager(config)
         self.assertTrue(new_storage.is_registered("9780132350884"))
+        books = new_storage.get_all_books()
+        self.assertEqual(len(books), 1)
+        self.assertEqual(books[0]["title"], "Clean Code")
+
+        # Test delete
+        deleted = new_storage.delete_book("9780132350884")
+        self.assertTrue(deleted)
+        self.assertFalse(new_storage.is_registered("9780132350884"))
+        self.assertEqual(len(new_storage.get_all_books()), 0)
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,8 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# Virtual environments
+# Virtual environments & secrets
+.env
+.env/
+.env.*
 venv/
 env/
 myenv/
@@ -15,13 +19,15 @@ myenv/
 *.swp
 *.swo
 
-# Data and Logs
+# Data, Caches and Logs
 *.log
 book_data.csv
 library_catalog.csv
 *.db
 *.sqlite3
+.pytest_cache/
 
 # OS generated
 .DS_Store
 Thumbs.db
+*.csv

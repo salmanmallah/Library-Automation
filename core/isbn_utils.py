@@ -32,8 +32,15 @@ def is_valid_isbn10(isbn: str) -> bool:
     return (total + check) % 11 == 0
 
 def is_valid_isbn13(isbn: str) -> bool:
-    """Validates ISBN-13 check digit."""
+    """
+    Validates ISBN-13 prefix (Bookland EAN strictly starting with 978 or 979)
+    and validates Modulo 10 check digit.
+    """
     if len(isbn) != 13 or not isbn.isdigit():
+        return False
+    
+    # Real ISBN-13 ALWAYS begins with 978 or 979
+    if not isbn.startswith(('978', '979')):
         return False
     
     total = sum(int(c) * (1 if i % 2 == 0 else 3) for i, c in enumerate(isbn))
@@ -41,15 +48,11 @@ def is_valid_isbn13(isbn: str) -> bool:
 
 def validate_and_normalize_isbn(raw_data: Union[str, bytes]) -> Optional[str]:
     """
-    Cleans raw barcode data and validates whether it's an ISBN-10 or ISBN-13.
-    Returns normalized clean ISBN or None if invalid.
+    Cleans raw barcode data and validates whether it is a legitimate ISBN-10 or ISBN-13.
+    Rejects barcodes that do not have valid check digits or proper Bookland prefixes.
     """
     cleaned = clean_isbn_string(raw_data)
     if is_valid_isbn13(cleaned) or is_valid_isbn10(cleaned):
-        return cleaned
-    
-    # Fallback: if 10 or 13 digits and barcode comes from a book EAN
-    if (len(cleaned) == 13 and cleaned.isdigit() and cleaned.startswith(('978', '979'))) or (len(cleaned) == 10 and cleaned[:-1].isdigit()):
         return cleaned
         
     return None
