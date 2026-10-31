@@ -1,5 +1,6 @@
 import io
 import csv
+from typing import Any
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,13 @@ from core.auth.dependencies import get_current_user, require_roles
 from core.services import analytics_service
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics & Reports"])
+
+def sanitize_csv_cell(value: Any) -> str:
+    """Escapes cells starting with formula trigger characters (=, +, -, @) to prevent CSV injection."""
+    s = str(value if value is not None else "")
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return f"'{s}"
+    return s
 
 @router.get("/dashboard")
 def get_dashboard_data(db: Session = Depends(get_db)):
@@ -23,7 +31,7 @@ def export_catalog_csv(
 ):
     """
     Dynamically generates and exports a clean CSV of the entire catalog and physical inventory.
-    Guarantees fresh database data whether using SQLite or PostgreSQL.
+    Implements formula injection escaping and requires authorized staff role.
     """
     books = db.query(Book).order_by(Book.id.asc()).all()
 
@@ -51,16 +59,16 @@ def export_catalog_csv(
         available_copies = sum(1 for c in b.copies if c.status == "available") if b.copies else 0
 
         writer.writerow([
-            b.isbn,
-            b.title,
-            authors,
-            publisher,
-            b.publish_date or "N/A",
+            sanitize_csv_cell(b.isbn),
+            sanitize_csv_cell(b.title),
+            sanitize_csv_cell(authors),
+            sanitize_csv_cell(publisher),
+            sanitize_csv_cell(b.publish_date or "N/A"),
             b.page_count,
-            categories,
+            sanitize_csv_cell(categories),
             total_copies,
             available_copies,
-            b.cover_image_url or "",
+            sanitize_csv_cell(b.cover_image_url or ""),
             b.created_at.strftime("%Y-%m-%d %H:%M:%S") if b.created_at else ""
         ])
 

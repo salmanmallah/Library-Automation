@@ -1,10 +1,14 @@
 import os
 import logging
-from typing import Union
+from typing import Union, List
 from dataclasses import dataclass, field
 
 @dataclass
 class AppConfig:
+    # Environment mode: 'development', 'test', 'production'
+    environment: str = os.getenv("ENVIRONMENT", "development").lower()
+    debug: bool = os.getenv("DEBUG", "false").lower() in ("true", "1")
+    
     # Institution Branding
     institution_name: str = os.getenv("INSTITUTION_NAME", "Institutional Central Library")
     
@@ -31,6 +35,17 @@ class AppConfig:
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24)))  # 24 hours
     
+    # Initial Admin Password (for safe first-run seeding)
+    initial_admin_password: str = os.getenv("ADMIN_INITIAL_PASSWORD", "Admin@1234")
+    
+    # CORS Allowed Origins
+    allowed_origins: List[str] = field(default_factory=lambda: [
+        origin.strip() for origin in os.getenv(
+            "ALLOWED_ORIGINS",
+            "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000"
+        ).split(",") if origin.strip()
+    ])
+    
     # Circulation Policy & Business Rules
     default_loan_days: int = int(os.getenv("DEFAULT_LOAN_DAYS", "14"))
     fine_per_day: float = float(os.getenv("FINE_PER_DAY", "1.0"))
@@ -42,7 +57,20 @@ class AppConfig:
     host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", "8000"))
     open_browser: bool = True
-    debug: bool = os.getenv("DEBUG", "false").lower() in ("true", "1")
+
+    def validate_security(self):
+        """Enforces security rules for production environments."""
+        if self.environment == "production":
+            if self.jwt_secret_key == "library-automation-super-secret-key-change-in-prod-2026" or len(self.jwt_secret_key) < 32:
+                raise ValueError(
+                    "CRITICAL SECURITY CONFIGURATION ERROR: In production, "
+                    "JWT_SECRET_KEY must be a cryptographically secure string of at least 32 characters."
+                )
+            if self.initial_admin_password == "Admin@1234":
+                logging.getLogger("LibraryAutomation").warning(
+                    "SECURITY WARNING: Default administrator password is in use. "
+                    "Please set ADMIN_INITIAL_PASSWORD in your environment."
+                )
 
 def setup_logger(debug: bool = False) -> logging.Logger:
     """Configures and returns a centralized application logger."""

@@ -3,10 +3,9 @@ import json
 import asyncio
 from typing import List, Optional
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
-from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, JSONResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, Request, Response
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from core.config import AppConfig
 from core.storage import StorageManager
@@ -14,6 +13,8 @@ from core.book_service import BookService
 from core.scanner_engine import ScannerEngine
 from core.database.session import init_db, SessionLocal
 from core.database.seeder import seed_database
+from core.auth.dependencies import require_roles
+from core.database.models.user import User
 
 # Routers
 from .routers.auth_router import router as auth_router
@@ -47,11 +48,14 @@ class ConnectionManager:
                 self.disconnect(connection)
 
 def create_app(config: AppConfig, storage: StorageManager, book_service: BookService, engine: ScannerEngine) -> FastAPI:
+    # Validate production security settings
+    config.validate_security()
+
     ws_manager = ConnectionManager()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        # 1. Initialize relational database and seed default institutional taxonomy
+        # 1. Initialize relational database and seed baseline institutional data
         init_db()
         db = SessionLocal()
         try:
@@ -69,30 +73,51 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
         lifespan=lifespan
     )
 
-    # Security & CORS Middleware
+    # Security Headers Middleware
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+    # Strict CORS configuration (removes wildcard with credentials)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=config.allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
-    # Health Check endpoint for Docker & Kubernetes
+    # Health Check endpoint
     @app.get("/healthz")
     def health_check():
         return {
             "status": "healthy",
             "version": "3.0.0",
+            "environment": config.environment,
             "camera_connected": engine.camera.is_connected,
             "camera_fps": engine.camera.fps
         }
 
     # Bridge ScannerEngine sync events to async WebSocket broadcast
+    # Filters out any private member data to prevent telemetry leakage
     def on_engine_event(event_data: dict):
         if ws_manager.loop and ws_manager.loop.is_running():
             try:
-                asyncio.run_coroutine_threadsafe(ws_manager.broadcast(event_data), ws_manager.loop)
+                # Sanitized public event
+                safe_event = {
+                    "type": event_data.get("type"),
+                    "isbn": event_data.get("isbn"),
+                    "barcode_image": event_data.get("barcode_image", ""),
+                    "timestamp": event_data.get("timestamp", ""),
+                    "message": event_data.get("message", ""),
+                    "book": event_data.get("book")
+                }
+                asyncio.run_coroutine_threadsafe(ws_manager.broadcast(safe_event), ws_manager.loop)
             except Exception:
                 pass
 
@@ -115,17 +140,19 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
         with open(template_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    # --- Backward Compatibility Endpoints for v2.0 clients ---
+    # --- Backward Compatibility Endpoints with strict RBAC enforcement ---
     @app.get("/api/books")
     def get_legacy_books():
         return storage.get_all_books()
 
     @app.delete("/api/books/{isbn}")
-    def delete_legacy_book(isbn: str):
+    def delete_legacy_book(
+        isbn: str,
+        current_user: User = Depends(require_roles("super_admin", "library_admin"))
+    ):
         success = storage.delete_book(isbn)
         if not success:
             raise HTTPException(status_code=404, detail="Book not found")
-        # Also broadcast deletion over WebSocket
         on_engine_event({
             "type": "book_deleted",
             "isbn": isbn,
@@ -134,12 +161,13 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
         return {"success": True, "isbn": isbn}
 
     @app.get("/api/export")
-    def export_legacy_csv():
-        # Delegate to analytics router logic for fresh relational data
+    def export_legacy_csv(
+        current_user: User = Depends(require_roles("super_admin", "library_admin", "librarian"))
+    ):
         from .routers.analytics_router import export_catalog_csv
         db = SessionLocal()
         try:
-            return export_catalog_csv(db=db, current_user=None)
+            return export_catalog_csv(db=db, current_user=current_user)
         finally:
             db.close()
 

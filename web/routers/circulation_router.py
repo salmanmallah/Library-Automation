@@ -1,6 +1,6 @@
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from core.database.session import get_db
@@ -11,18 +11,18 @@ from core.services import circulation_service
 router = APIRouter(prefix="/api/circulation", tags=["Circulation"])
 
 class IssueRequest(BaseModel):
-    copy_barcode: str
-    member_identifier: str
-    custom_loan_days: Optional[int] = None
+    copy_barcode: str = Field(..., min_length=3, max_length=50)
+    member_identifier: str = Field(..., min_length=1, max_length=100)
+    custom_loan_days: Optional[int] = Field(None, ge=1, le=90)
 
 class ReturnRequest(BaseModel):
-    copy_barcode: str
+    copy_barcode: str = Field(..., min_length=3, max_length=50)
 
 class ReservationRequest(BaseModel):
-    book_id: int
+    book_id: int = Field(..., ge=1)
 
 class FinePaymentRequest(BaseModel):
-    amount: float
+    amount: float = Field(..., gt=0.0)
 
 @router.get("/loans")
 def list_loans(
@@ -33,7 +33,7 @@ def list_loans(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Non-staff members can only view their own loans
+    # Non-staff members are strictly restricted to their own loans
     effective_member_id = member_id
     if current_user.role == "member":
         effective_member_id = current_user.id
@@ -97,13 +97,17 @@ def renew_loan(
     db: Session = Depends(get_db)
 ):
     try:
+        is_staff = current_user.role in ("super_admin", "library_admin", "librarian")
         loan = circulation_service.renew_loan(
             db=db,
             loan_id=loan_id,
             user_id=current_user.id,
+            is_staff=is_staff,
             ip_address=request.client.host if request.client else "Local"
         )
         return {"success": True, "message": "Loan successfully renewed.", "loan": loan.to_dict()}
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

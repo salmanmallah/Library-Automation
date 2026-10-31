@@ -38,11 +38,16 @@ def get_current_user(
     if not payload:
         raise credentials_exception
 
-    user_id = payload.get("sub")
-    if not user_id:
+    sub = payload.get("sub")
+    if not sub:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id = int(sub)
+    except (ValueError, TypeError):
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -62,7 +67,8 @@ def get_optional_current_user(
     if not payload or "sub" not in payload:
         return None
     try:
-        user = db.query(User).filter(User.id == int(payload["sub"])).first()
+        user_id = int(payload["sub"])
+        user = db.query(User).filter(User.id == user_id).first()
         if user and user.is_active:
             return user
     except Exception:

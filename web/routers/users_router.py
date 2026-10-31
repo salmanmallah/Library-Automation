@@ -1,22 +1,22 @@
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from core.database.session import get_db
 from core.database.models.user import User
-from core.auth.dependencies import require_roles
+from core.auth.dependencies import require_roles, get_current_user
 from core.services.audit_service import log_audit_event
 
 router = APIRouter(prefix="/api/users", tags=["User & Member Management"])
 
 class UserUpdateRequest(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    department: Optional[str] = None
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    phone: Optional[str] = Field(None, max_length=25)
+    department: Optional[str] = Field(None, max_length=100)
     is_active: Optional[bool] = None
-    max_borrow_limit: Optional[int] = None
+    max_borrow_limit: Optional[int] = Field(None, ge=1, le=50)
 
 @router.get("")
 def list_users(
@@ -45,9 +45,13 @@ def list_users(
 @router.get("/{user_id}")
 def get_user_profile(
     user_id: int,
-    current_user: User = Depends(require_roles("super_admin", "library_admin", "librarian")),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Members can only view their own profile; staff can view any profile
+    if current_user.role == "member" and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Access denied: Cannot view another member's profile.")
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")

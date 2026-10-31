@@ -73,7 +73,8 @@ def issue_book(
 ) -> Loan:
     """
     Issues a physical book copy to an eligible registered member.
-    Enforces borrowing limit, active member verification, fine threshold, and copy availability.
+    Enforces borrowing limit, active member verification, fine threshold,
+    and ATOMIC state transition preventing concurrent double-issues.
     """
     clean_barcode = copy_barcode.strip()
     clean_ident = member_identifier.strip()
@@ -106,12 +107,12 @@ def issue_book(
             f"active loans (maximum permitted: {max_limit})."
         )
 
-    # 3. Check for High Outstanding Unpaid Fines
+    # 3. Check for Outstanding Unpaid Fines threshold
     unpaid_fines = db.query(Fine).filter(
         Fine.member_id == member.id,
         Fine.status.in_(["unpaid", "partially_paid"])
     ).all()
-    total_unpaid = sum(f.amount - f.paid_amount for f in unpaid_fines)
+    total_unpaid = sum(round(f.amount - f.paid_amount, 2) for f in unpaid_fines)
     if total_unpaid > 100.0:  # Fine threshold
         raise ValueError(
             f"Member '{member.full_name}' has outstanding unpaid fines of ${total_unpaid:.2f}. "
@@ -128,10 +129,21 @@ def issue_book(
 
     if not copy:
         raise ValueError(f"Book copy with barcode '{clean_barcode}' does not exist.")
-    if copy.status != "available":
-        raise ValueError(f"Book copy '{copy.copy_barcode}' is currently {copy.status.upper()} and cannot be issued.")
 
-    # 5. Compute Loan Durations
+    # 5. ATOMIC CONCURRENCY GUARD:
+    # Update copy status to 'issued' atomically only if currently 'available'
+    rows_updated = db.query(BookCopy).filter(
+        BookCopy.id == copy.id,
+        BookCopy.status == "available"
+    ).update({"status": "issued"}, synchronize_session=False)
+
+    if rows_updated == 0:
+        raise ValueError(
+            f"Copy '{copy.copy_barcode}' is currently {copy.status.upper()} "
+            "(or was just checked out in a concurrent transaction)."
+        )
+
+    # 6. Compute Loan Durations
     loan_days = custom_loan_days or get_setting_int(db, "default_loan_days", 14)
     now = datetime.now()
     due_date = now + timedelta(days=loan_days)
@@ -145,7 +157,6 @@ def issue_book(
         status="active",
         renewal_count=0
     )
-    copy.status = "issued"
     db.add(loan)
     db.commit()
     db.refresh(loan)
@@ -175,8 +186,9 @@ def return_book(
     ip_address: Optional[str] = None
 ) -> Tuple[Loan, Optional[Fine]]:
     """
-    Processes book return, updates copy status, computes overdue fines if late,
-    and fulfills or checks waiting reservation queues.
+    Processes book return with atomic checkout verification,
+    updates copy status, computes overdue fines if late,
+    and fulfills waiting reservation queues.
     """
     clean_barcode = copy_barcode.strip()
     copy = db.query(BookCopy).filter(
@@ -199,8 +211,15 @@ def return_book(
         raise ValueError(f"Copy '{copy.copy_barcode}' ({copy.book.title}) is not currently marked as active loan.")
 
     now = datetime.now()
-    loan.return_date = now
-    loan.status = "returned"
+
+    # Atomic loan return update
+    rows_updated = db.query(Loan).filter(
+        Loan.id == loan.id,
+        Loan.status == "active"
+    ).update({"status": "returned", "return_date": now}, synchronize_session=False)
+
+    if rows_updated == 0:
+        raise ValueError(f"Loan for copy '{copy.copy_barcode}' was already returned.")
 
     # Overdue fine calculation
     fine_record = None
@@ -215,11 +234,11 @@ def return_book(
                 amount=fine_amount,
                 paid_amount=0.0,
                 status="unpaid",
-                reason=f"Overdue return by {days_late} day(s) at ${fine_rate}/day."
+                reason=f"Overdue return by {days_late} day(s) at ${fine_rate:.2f}/day."
             )
             db.add(fine_record)
 
-    # Check for pending reservations on this book
+    # Check for pending reservations on this book title
     pending_res = db.query(Reservation).filter(
         Reservation.book_id == copy.book_id,
         Reservation.status == "pending"
@@ -259,18 +278,23 @@ def renew_loan(
     db: Session,
     loan_id: int,
     user_id: Optional[int] = None,
+    is_staff: bool = False,
     ip_address: Optional[str] = None
 ) -> Loan:
-    """Renews an active loan unless reservation queue or renewal limit is reached."""
+    """Renews an active loan with cross-member authorization enforcement."""
     loan = db.query(Loan).filter(Loan.id == loan_id).first()
     if not loan or loan.status != "active":
         raise ValueError(f"Active loan with ID {loan_id} not found.")
+
+    # Cross-member renewal restriction
+    if not is_staff and user_id is not None and loan.member_id != user_id:
+        raise PermissionError("Access denied: You can only renew your own active loans.")
 
     max_renewals = get_setting_int(db, "max_renewals_per_loan", 2)
     if loan.renewal_count >= max_renewals:
         raise ValueError(f"Renewal limit reached: Loan has already been renewed {loan.renewal_count} times.")
 
-    # Check if another member has reserved this book title
+    # Check if another member has placed a reservation on this book title
     book_id = loan.copy.book_id
     has_res = db.query(Reservation).filter(
         Reservation.book_id == book_id,
@@ -283,7 +307,6 @@ def renew_loan(
 
     loan_days = get_setting_int(db, "default_loan_days", 14)
     now = datetime.now()
-    # If already past due, calculate from today, else extend current due date
     base_date = max(loan.due_date, now)
     loan.due_date = base_date + timedelta(days=loan_days)
     loan.renewal_count += 1
@@ -308,7 +331,7 @@ def create_reservation(
     member_id: int,
     ip_address: Optional[str] = None
 ) -> Reservation:
-    """Places a hold reservation on an unavailable book title."""
+    """Places a hold reservation on a book title."""
     book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise ValueError("Book does not exist.")
@@ -317,14 +340,13 @@ def create_reservation(
     if not member or not member.is_active:
         raise ValueError("Active member account required for reservations.")
 
-    # Check if member already has pending reservation for this title
     existing = db.query(Reservation).filter(
         Reservation.book_id == book_id,
         Reservation.member_id == member_id,
         Reservation.status == "pending"
     ).first()
     if existing:
-        raise ValueError("You already have a pending reservation for this book.")
+        raise ValueError("You already have an active pending reservation for this book.")
 
     expiry_days = get_setting_int(db, "reservation_expiry_days", 7)
     now = datetime.now()
@@ -379,14 +401,19 @@ def pay_fine(
     processed_by_id: Optional[int] = None,
     ip_address: Optional[str] = None
 ) -> Fine:
+    """Records a fine payment with bounds verification."""
     fine = db.query(Fine).filter(Fine.id == fine_id).first()
     if not fine:
         raise ValueError("Fine record not found.")
 
     if amount <= 0:
-        raise ValueError("Payment amount must be positive.")
+        raise ValueError("Payment amount must be greater than zero.")
 
-    fine.paid_amount += amount
+    outstanding = round(fine.amount - fine.paid_amount, 2)
+    if amount > outstanding:
+        raise ValueError(f"Payment amount (${amount:.2f}) exceeds outstanding balance (${outstanding:.2f}).")
+
+    fine.paid_amount = round(fine.paid_amount + amount, 2)
     if fine.paid_amount >= fine.amount:
         fine.status = "paid"
         fine.paid_amount = fine.amount
