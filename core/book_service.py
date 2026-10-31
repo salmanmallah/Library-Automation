@@ -34,7 +34,7 @@ class BookService:
     def _create_resilient_session(self) -> requests.Session:
         session = requests.Session()
         session.headers.update({
-            "User-Agent": "LibraryAutomationSystem/2.0 (BookScanner; Windows NT 10.0)"
+            "User-Agent": "LibraryAutomationSystem/3.0 (EnterpriseBookScanner; Windows NT 10.0)"
         })
         retries = Retry(
             total=1,
@@ -81,22 +81,43 @@ class BookService:
                 return None
 
             info = data[key]
-            title = info.get("title", f"Book {isbn}")
-            
-            authors_list = [a.get("name") for a in info.get("authors", []) if "name" in a]
+            title = str(info.get("title", f"Book {isbn}"))
+
+            # Robust author parsing (handles dict with 'name' or direct string)
+            authors_list = []
+            for a in info.get("authors", []):
+                if isinstance(a, dict) and "name" in a:
+                    authors_list.append(str(a["name"]))
+                elif isinstance(a, str):
+                    authors_list.append(a)
             authors = ", ".join(authors_list) if authors_list else "Unknown"
 
-            publishers_list = [p.get("name") for p in info.get("publishers", []) if "name" in p]
+            # Robust publisher parsing
+            publishers_list = []
+            for p in info.get("publishers", []):
+                if isinstance(p, dict) and "name" in p:
+                    publishers_list.append(str(p["name"]))
+                elif isinstance(p, str):
+                    publishers_list.append(p)
             publisher = ", ".join(publishers_list) if publishers_list else "N/A"
 
             publish_date = str(info.get("publish_date", "N/A"))
             page_count = int(info.get("number_of_pages") or 0)
 
-            subjects_list = [s.get("name") for s in info.get("subjects", []) if isinstance(s, dict) and "name" in s][:3]
+            # Subjects / Categories
+            subjects_list = []
+            for s in info.get("subjects", []):
+                if isinstance(s, dict) and "name" in s:
+                    subjects_list.append(str(s["name"]))
+                elif isinstance(s, str):
+                    subjects_list.append(s)
+            subjects_list = subjects_list[:3]
             categories = ", ".join(subjects_list) if subjects_list else "General"
 
             covers = info.get("cover", {})
-            cover_url = covers.get("medium") or covers.get("large") or covers.get("small") or ""
+            cover_url = ""
+            if isinstance(covers, dict):
+                cover_url = covers.get("medium") or covers.get("large") or covers.get("small") or ""
 
             description = "N/A"
             notes = info.get("notes")
@@ -137,17 +158,25 @@ class BookService:
 
             volume_info = items[0].get("volumeInfo", {})
             raw_authors = volume_info.get("authors", [])
-            authors = ", ".join(raw_authors) if isinstance(raw_authors, list) else str(raw_authors)
+            if isinstance(raw_authors, list):
+                authors = ", ".join(str(a) for a in raw_authors if a)
+            else:
+                authors = str(raw_authors) if raw_authors else "Unknown"
 
             raw_categories = volume_info.get("categories", [])
-            categories = ", ".join(raw_categories) if isinstance(raw_categories, list) else str(raw_categories)
+            if isinstance(raw_categories, list):
+                categories = ", ".join(str(c) for c in raw_categories if c)
+            else:
+                categories = str(raw_categories) if raw_categories else "General"
 
             desc = volume_info.get("description", "No description provided.")
             if len(desc) > 500:
                 desc = desc[:497] + "..."
 
             image_links = volume_info.get("imageLinks", {})
-            cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail") or ""
+            cover_url = ""
+            if isinstance(image_links, dict):
+                cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail") or ""
             if cover_url.startswith("http://"):
                 cover_url = "https://" + cover_url[7:]
 

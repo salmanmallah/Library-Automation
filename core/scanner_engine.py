@@ -14,12 +14,16 @@ from .camera import ThreadedCamera
 from .storage import StorageManager
 from .book_service import BookService, BookRecord
 from .isbn_utils import validate_and_normalize_isbn
+from .database.session import SessionLocal
+from .services import catalog_service
 
 logger = logging.getLogger("LibraryAutomation.Engine")
 
 def crop_barcode_b64(frame: np.ndarray, pts: np.ndarray, padding: int = 15) -> str:
     """Crops the physical barcode region from frame and returns a base64 JPEG data URL."""
     try:
+        if pts is None or len(pts) == 0:
+            return ""
         fh, fw = frame.shape[:2]
         x, y, w, h = cv2.boundingRect(pts)
         x1 = max(0, x - padding)
@@ -46,8 +50,8 @@ def crop_barcode_b64(frame: np.ndarray, pts: np.ndarray, padding: int = 15) -> s
 class ScannerEngine:
     """
     High-throughput multi-barcode concurrent scanner engine.
-    Supports capturing physical barcode snapshots (Samsung/Lens style),
-    stable viewfinder brackets, and parallel queue resolution for MUET Central Library.
+    Integrates real-time PyZBar barcode detection with multi-frame consensus,
+    thread-safe non-blocking background queueing, and relational database cataloging.
     """
     def __init__(self, config: AppConfig, storage: StorageManager, book_service: BookService):
         self.config = config
@@ -83,10 +87,10 @@ class ScannerEngine:
         # Start multi-threaded worker pool for parallel API resolution
         self.worker_threads: List[threading.Thread] = []
         for i in range(self.config.worker_threads):
-            t = threading.Thread(target=self._isbn_worker_loop, name=f"MUET-Worker-{i+1}", daemon=True)
+            t = threading.Thread(target=self._isbn_worker_loop, name=f"Scanner-Worker-{i+1}", daemon=True)
             t.start()
             self.worker_threads.append(t)
-        logger.info(f"Initialized {len(self.worker_threads)} concurrent ISBN worker threads for MUET Central Library.")
+        logger.info(f"Initialized {len(self.worker_threads)} concurrent ISBN worker threads.")
 
         # Start detection loop
         self.scanner_thread = threading.Thread(target=self._detection_loop, name="ScannerDetectionLoop", daemon=True)
@@ -186,7 +190,7 @@ class ScannerEngine:
                                     continue
                                 self.in_flight_isbns.add(isbn)
 
-                            # Crop physical barcode image (Samsung Galaxy Lens style)
+                            # Crop physical barcode image
                             barcode_img = crop_barcode_b64(frame, pts)
 
                             # Broadcast barcode captured event to UI immediately
@@ -218,7 +222,7 @@ class ScannerEngine:
             time.sleep(0.025)
 
     def _isbn_worker_loop(self):
-        """Worker loop executing parallel API lookups from the queue."""
+        """Worker loop executing parallel API lookups and database sync."""
         thread_name = threading.current_thread().name
 
         while self.running:
@@ -244,7 +248,7 @@ class ScannerEngine:
                         "type": "already_registered",
                         "isbn": isbn,
                         "barcode_image": barcode_img,
-                        "message": f"ISBN {isbn} is already registered."
+                        "message": f"ISBN {isbn} is already registered in catalog."
                     })
                     continue
 
@@ -258,31 +262,41 @@ class ScannerEngine:
                 # Fetch book metadata (OpenLibrary first, then Google Books)
                 record = self.book_service.fetch_by_isbn(isbn)
                 if record:
-                    saved = self.storage.save_book(record)
-                    if saved:
-                        logger.info(f"Cataloged: '{record.title}' (ISBN: {isbn})")
-                        self._broadcast_event({
-                            "type": "book_saved",
-                            "status": "success",
-                            "isbn": isbn,
-                            "barcode_image": barcode_img,
-                            "book": record.to_dict(),
-                            "message": f"Successfully registered '{record.title}'",
-                            "queue_remaining": self.isbn_queue.qsize()
-                        })
-                    else:
-                        self._broadcast_event({
-                            "type": "save_error",
-                            "isbn": isbn,
-                            "message": f"Could not save ISBN {isbn}."
-                        })
+                    # Save to legacy storage (CSV / SQLite flat)
+                    self.storage.save_book(record)
+
+                    # Save to Relational Database via Catalog Service
+                    db = SessionLocal()
+                    try:
+                        book_obj, is_created = catalog_service.create_or_update_book(
+                            db=db,
+                            data=record.to_dict(),
+                            initial_copies=2  # Auto-provision 2 physical copies
+                        )
+                        logger.info(f"Relational DB synced: '{book_obj.title}' with {len(book_obj.copies)} physical copies.")
+                        book_dict = book_obj.to_dict()
+                    except Exception as ex:
+                        logger.error(f"Relational sync error for ISBN {isbn}: {ex}")
+                        book_dict = record.to_dict()
+                    finally:
+                        db.close()
+
+                    self._broadcast_event({
+                        "type": "book_saved",
+                        "status": "success",
+                        "isbn": isbn,
+                        "barcode_image": barcode_img,
+                        "book": book_dict,
+                        "message": f"Successfully registered '{record.title}'",
+                        "queue_remaining": self.isbn_queue.qsize()
+                    })
                 else:
-                    logger.warning(f"ISBN {isbn} could not be resolved by book APIs (false positive ignored).")
+                    logger.warning(f"ISBN {isbn} could not be resolved by book APIs (ignored).")
                     self._broadcast_event({
                         "type": "not_found",
                         "isbn": isbn,
                         "barcode_image": barcode_img,
-                        "message": f"Barcode {isbn} not found in public book registries (ignored)."
+                        "message": f"Barcode {isbn} not found in public book registries."
                     })
 
             except Exception as e:
@@ -297,41 +311,50 @@ class ScannerEngine:
                 self.isbn_queue.task_done()
 
     def process_manual_isbn(self, isbn: str) -> Dict[str, Any]:
-        """Manually trigger an ISBN scan from UI."""
+        """Manually trigger an ISBN scan from UI or API."""
         norm_isbn = validate_and_normalize_isbn(isbn)
         if not norm_isbn:
             return {"success": False, "message": "Invalid ISBN format. Must be 10 or 13 digits starting with 978/979."}
 
-        if self.storage.is_registered(norm_isbn):
-            return {"success": False, "message": f"ISBN {norm_isbn} is already registered in MUET Central Library."}
+        # Check relational DB first
+        db = SessionLocal()
+        try:
+            existing = catalog_service.get_book_by_isbn(db, norm_isbn)
+            if existing:
+                return {"success": False, "message": f"ISBN {norm_isbn} is already registered in catalog."}
 
-        record = self.book_service.fetch_by_isbn(norm_isbn)
-        if not record:
-            record = BookRecord(
-                isbn=norm_isbn,
-                title=f"Manual Book Entry (ISBN: {norm_isbn})",
-                authors="Manual Entry",
-                publisher="MUET Library",
-                publish_date=datetime.now().strftime("%Y"),
-                page_count=0,
-                categories="General",
-                description="Manually added to MUET Central Library catalog.",
-                scanned_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                cover_image_url=""
-            )
+            record = self.book_service.fetch_by_isbn(norm_isbn)
+            if not record:
+                record = BookRecord(
+                    isbn=norm_isbn,
+                    title=f"Manual Book Entry (ISBN: {norm_isbn})",
+                    authors="Manual Entry",
+                    publisher="Library Acquisition",
+                    publish_date=datetime.now().strftime("%Y"),
+                    page_count=0,
+                    categories="General Stack",
+                    description="Manually registered into institutional catalog.",
+                    scanned_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    cover_image_url=""
+                )
 
-        self.storage.save_book(record)
-        self._broadcast_event({
-            "type": "book_saved",
-            "status": "success",
-            "isbn": norm_isbn,
-            "book": record.to_dict(),
-            "message": f"Registered '{record.title}'"
-        })
-        return {"success": True, "book": record.to_dict()}
+            self.storage.save_book(record)
+            book_obj, _ = catalog_service.create_or_update_book(db, record.to_dict(), initial_copies=2)
+            book_dict = book_obj.to_dict()
+
+            self._broadcast_event({
+                "type": "book_saved",
+                "status": "success",
+                "isbn": norm_isbn,
+                "book": book_dict,
+                "message": f"Registered '{book_obj.title}'"
+            })
+            return {"success": True, "book": book_dict}
+        finally:
+            db.close()
 
     def generate_annotated_frame(self) -> Optional[np.ndarray]:
-        """Generates video frame with clean, professional stabilized corner brackets (Samsung style)."""
+        """Generates video frame with clean, professional stabilized corner brackets and HUD."""
         if self.camera.is_paused:
             h, w = 480, 640
             frame = np.full((h, w, 3), 16, dtype=np.uint8)
@@ -361,17 +384,17 @@ class ScannerEngine:
             placeholder = np.zeros((h, w, 3), dtype=np.uint8)
             cv2.putText(
                 placeholder,
-                "Connecting to MUET Video Feed...",
-                (40, 240),
+                f"Connecting to {self.config.institution_name} Video...",
+                (30, 240),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
+                0.65,
                 (0, 165, 255),
                 2
             )
             cv2.putText(
                 placeholder,
                 f"Source: {self.camera.source}",
-                (40, 280),
+                (30, 280),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
                 (180, 180, 180),
@@ -381,7 +404,7 @@ class ScannerEngine:
 
         h, w = frame.shape[:2]
 
-        # Draw Clean Center Guide Brackets
+        # Draw Center Target Reticle Brackets
         cx, cy = w // 2, h // 2
         rw, rh = int(w * 0.45), int(h * 0.35)
         x1, y1 = cx - rw // 2, cy - rh // 2
@@ -396,9 +419,9 @@ class ScannerEngine:
         cv2.line(frame, (x1, y2), (x1 + line_len, y2), gold_color, 2)
         cv2.line(frame, (x1, y2), (x1, y2 - line_len), gold_color, 2)
         cv2.line(frame, (x2, y2), (x2 - line_len, y2), gold_color, 2)
-        cv2.line(frame, (x2, y2), (x2, y2 - line_len), neon_cyan := (0, 215, 255), 2)
+        cv2.line(frame, (x2, y2), (x2, y2 - line_len), gold_color, 2)
 
-        # Draw Stabilized, Clean Rectangular Corner Brackets for each detected barcode
+        # Draw Corner Brackets for each detected barcode
         current_time = time.time()
         with self.detection_lock:
             for det in self.active_detections:
@@ -420,14 +443,12 @@ class ScannerEngine:
                         color = (130, 130, 130)    # Slate / Gray
                         label = "Barcode"
 
-                    # Padding around barcode for clean look
                     pad = 6
                     rx1 = max(0, bx - pad)
                     ry1 = max(0, by - pad)
                     rx2 = min(w, bx + bw + pad)
                     ry2 = min(h, by + bh + pad)
 
-                    # Draw 4 neat corner brackets instead of irregular polygon
                     c_len = min(18, (rx2 - rx1) // 3, (ry2 - ry1) // 3)
                     # Top-left
                     cv2.line(frame, (rx1, ry1), (rx1 + c_len, ry1), color, 3)
@@ -442,7 +463,7 @@ class ScannerEngine:
                     cv2.line(frame, (rx2, ry2), (rx2 - c_len, ry2), color, 3)
                     cv2.line(frame, (rx2, ry2), (rx2, ry2 - c_len), color, 3)
 
-                    # Background pill badge above barcode
+                    # Pill badge
                     label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
                     badge_w, badge_h = label_size[0] + 12, label_size[1] + 8
                     badge_y1 = max(0, ry1 - badge_h - 4)
@@ -461,13 +482,13 @@ class ScannerEngine:
                         cv2.LINE_AA
                     )
 
-        # MUET Central Library Header Banner Overlay
+        # Header Banner Overlay
         cv2.putText(
             frame,
-            f"MUET CENTRAL LIBRARY | Multi-Lens v2.3 | FPS: {self.camera.fps}",
+            f"{self.config.institution_name} | Scanner v3.0 | FPS: {self.camera.fps}",
             (15, 25),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
+            0.5,
             (0, 215, 255),
             2,
             cv2.LINE_AA

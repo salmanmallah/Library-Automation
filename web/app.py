@@ -3,20 +3,27 @@ import json
 import asyncio
 from typing import List, Optional
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
-from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from core.config import AppConfig
 from core.storage import StorageManager
 from core.book_service import BookService
 from core.scanner_engine import ScannerEngine
+from core.database.session import init_db, SessionLocal
+from core.database.seeder import seed_database
 
-class ManualScanRequest(BaseModel):
-    isbn: str
-
-class CameraSwitchRequest(BaseModel):
-    source: str
+# Routers
+from .routers.auth_router import router as auth_router
+from .routers.catalog_router import router as catalog_router
+from .routers.inventory_router import router as inventory_router
+from .routers.circulation_router import router as circulation_router
+from .routers.analytics_router import router as analytics_router
+from .routers.users_router import router as users_router
+from .routers.audit_router import router as audit_router
+from .routers.scanner_router import get_scanner_router
 
 class ConnectionManager:
     def __init__(self):
@@ -44,10 +51,42 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # 1. Initialize relational database and seed default institutional taxonomy
+        init_db()
+        db = SessionLocal()
+        try:
+            seed_database(db, csv_migration_path=config.csv_file_path)
+        finally:
+            db.close()
+
+        # 2. Bind event loop for real-time WebSocket broadcasting
         ws_manager.loop = asyncio.get_running_loop()
         yield
 
-    app = FastAPI(title="Library Automation Server", lifespan=lifespan)
+    app = FastAPI(
+        title=f"{config.institution_name} - Platform",
+        version="3.0.0",
+        lifespan=lifespan
+    )
+
+    # Security & CORS Middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Health Check endpoint for Docker & Kubernetes
+    @app.get("/healthz")
+    def health_check():
+        return {
+            "status": "healthy",
+            "version": "3.0.0",
+            "camera_connected": engine.camera.is_connected,
+            "camera_fps": engine.camera.fps
+        }
 
     # Bridge ScannerEngine sync events to async WebSocket broadcast
     def on_engine_event(event_data: dict):
@@ -59,6 +98,16 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
 
     engine.register_callback(on_engine_event)
 
+    # Mount API Routers
+    app.include_router(auth_router)
+    app.include_router(catalog_router)
+    app.include_router(inventory_router)
+    app.include_router(circulation_router)
+    app.include_router(analytics_router)
+    app.include_router(users_router)
+    app.include_router(audit_router)
+    app.include_router(get_scanner_router(engine))
+
     template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
 
     @app.get("/", response_class=HTMLResponse)
@@ -66,60 +115,35 @@ def create_app(config: AppConfig, storage: StorageManager, book_service: BookSer
         with open(template_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    @app.get("/video_feed")
-    def video_feed():
-        return StreamingResponse(
-            engine.generate_mjpeg_stream(),
-            media_type="multipart/x-mixed-replace; boundary=frame"
-        )
-
+    # --- Backward Compatibility Endpoints for v2.0 clients ---
     @app.get("/api/books")
-    def get_books():
+    def get_legacy_books():
         return storage.get_all_books()
 
-    @app.post("/api/scan_manual")
-    def scan_manual(req: ManualScanRequest):
-        res = engine.process_manual_isbn(req.isbn)
-        return res
-
     @app.delete("/api/books/{isbn}")
-    def delete_book(isbn: str):
+    def delete_legacy_book(isbn: str):
         success = storage.delete_book(isbn)
         if not success:
             raise HTTPException(status_code=404, detail="Book not found")
+        # Also broadcast deletion over WebSocket
+        on_engine_event({
+            "type": "book_deleted",
+            "isbn": isbn,
+            "message": f"Book {isbn} was deleted from catalog."
+        })
         return {"success": True, "isbn": isbn}
 
     @app.get("/api/export")
-    def export_csv():
-        if not os.path.exists(config.csv_file_path):
-            raise HTTPException(status_code=404, detail="Catalog file not found")
-        return FileResponse(
-            path=config.csv_file_path,
-            filename="library_catalog.csv",
-            media_type="text/csv"
-        )
+    def export_legacy_csv():
+        # Delegate to analytics router logic for fresh relational data
+        from .routers.analytics_router import export_catalog_csv
+        db = SessionLocal()
+        try:
+            return export_catalog_csv(db=db, current_user=None)
+        finally:
+            db.close()
 
-    @app.post("/api/camera/switch")
-    def switch_camera(req: CameraSwitchRequest):
-        source = req.source.strip()
-        if source.isdigit():
-            source = int(source)
-        success = engine.camera.switch_source(source)
-        return {"success": success, "source": str(source)}
-
-    @app.post("/api/camera/toggle")
-    def toggle_camera():
-        is_paused = engine.camera.toggle_pause()
-        return {"is_paused": is_paused, "status": "paused" if is_paused else "active"}
-
-    @app.get("/api/camera/status")
-    def camera_status():
-        return {
-            "is_paused": engine.camera.is_paused,
-            "source": str(engine.camera.source),
-            "fps": engine.camera.fps
-        }
-
+    # WebSocket connection endpoint
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         await ws_manager.connect(websocket)

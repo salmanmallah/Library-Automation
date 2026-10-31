@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: library_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-library_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-LibrarySecurePass2026}
+      POSTGRES_DB: ${POSTGRES_DB:-library_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: library_platform
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - INSTITUTION_NAME=${INSTITUTION_NAME:-Institutional Central Library}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-library_admin}:${POSTGRES_PASSWORD:-LibrarySecurePass2026}@db:5432/${POSTGRES_DB:-library_db}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-this-in-production-institutional-key-2026}
+      - CAMERA_INDEX=${CAMERA_INDEX:-http://127.0.0.1:8080/video}
+      - DEFAULT_LOAN_DAYS=${DEFAULT_LOAN_DAYS:-14}
+      - FINE_PER_DAY=${FINE_PER_DAY:-1.0}
+      - MAX_LOANS_PER_MEMBER=${MAX_LOANS_PER_MEMBER:-5}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  postgres_data:

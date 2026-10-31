@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUET Central Library - Smart Book Cataloging System</title>
+    <title>Institutional Central Library — Automated Inventory & Management Platform</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,344 +12,757 @@
             theme: {
                 extend: {
                     colors: {
-                        muetNavy: '#0A0F1D',
-                        muetCard: '#111827',
-                        muetBorder: '#1F293D',
-                        muetGold: '#F59E0B',
-                        muetGoldHover: '#D97706',
-                        emeraldNeon: '#10B981',
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        surface: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            800: '#1e293b',
+                            850: '#172033',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
                     }
                 }
             }
         }
     </script>
-    <!-- Lucide Icons -->
+    <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #070B14;
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .tab-btn.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            font-weight: 600;
         }
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0E1526;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #25334D;
-            border-radius: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #3B82F6;
-        }
-        @keyframes laserSweep {
-            0% { top: 4%; opacity: 0.8; }
-            50% { top: 88%; opacity: 1; }
-            100% { top: 4%; opacity: 0.8; }
-        }
-        .laser-beam {
-            position: absolute;
-            left: 0;
-            right: 0;
-            height: 2.5px;
-            background: linear-gradient(90deg, rgba(245,158,11,0) 0%, rgba(245,158,11,1) 50%, rgba(245,158,11,0) 100%);
-            box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.9);
-            animation: laserSweep 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.15); opacity: 0.3; }
-            100% { transform: scale(0.95); opacity: 0.8; }
-        }
-        .pulse-live {
-            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        @keyframes cardPop {
-            0% { transform: scale(0.95) translateY(10px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
-        }
-        .animate-card-in {
-            animation: cardPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .dark .tab-btn.active {
+            background-color: #4338ca;
+            color: #ffffff;
         }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen flex flex-col">
+<body class="bg-surface-50 dark:bg-surface-950 text-slate-900 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col md:flex-row transition-colors duration-200">
 
-    <!-- Top Navigation Bar: MUET Central Library Branding -->
-    <header class="border-b border-gray-800 bg-[#0B101E]/95 backdrop-blur sticky top-0 z-40 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-2.5 flex items-center justify-between">
-            <div class="flex items-center space-x-3.5">
-                <!-- University Crest / Icon -->
-                <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500 via-amber-600 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-extrabold text-xl">
-                    <i data-lucide="graduation-cap" class="w-6 h-6 text-slate-950"></i>
-                </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-bold text-base sm:text-lg leading-tight tracking-tight text-white">
-                            MUET Central Library
-                        </h1>
-                        <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                            Smart Cataloger v2.4
-                        </span>
+    <!-- Collapsible Sidebar Navigation -->
+    <aside id="sidebar" class="w-full md:w-64 bg-white dark:bg-surface-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 shadow-sm z-30">
+        <div>
+            <!-- Institution Header -->
+            <div class="h-16 px-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                        <i data-lucide="library" class="w-5 h-5"></i>
                     </div>
-                    <p class="text-xs text-gray-400">Mehran University of Engineering & Technology, Jamshoro</p>
+                    <div>
+                        <h1 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight">CENTRAL LIBRARY</h1>
+                        <span class="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">Inventory & Circulation v3.0</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Header Action Controls -->
+            <!-- Navigation Links -->
+            <nav class="p-3 space-y-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn active w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="switchTab('scanner')" id="nav-scanner" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="scan-barcode" class="w-4 h-4 text-emerald-500"></i>
+                    <span class="flex-1 text-left">Barcode Scanner</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                </button>
+                <button onclick="switchTab('catalog')" id="nav-catalog" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Book Catalog</span>
+                </button>
+                <button onclick="switchTab('inventory')" id="nav-inventory" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="boxes" class="w-4 h-4"></i>
+                    <span>Physical Inventory</span>
+                </button>
+                <button onclick="switchTab('circulation')" id="nav-circulation" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="repeat" class="w-4 h-4"></i>
+                    <span>Circulation (Issue/Return)</span>
+                </button>
+                <button onclick="switchTab('reservations')" id="nav-reservations" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="bookmark" class="w-4 h-4"></i>
+                    <span>Hold Reservations</span>
+                </button>
+                <button onclick="switchTab('members')" id="nav-members" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Members & Staff</span>
+                </button>
+                <button onclick="switchTab('fines')" id="nav-fines" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="receipt" class="w-4 h-4"></i>
+                    <span>Fines & Payments</span>
+                </button>
+                <button onclick="switchTab('reports')" id="nav-reports" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    <span>Reports & Analytics</span>
+                </button>
+                <button onclick="switchTab('audit')" id="nav-audit" class="tab-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-surface-800 transition">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span>Security Audit Logs</span>
+                </button>
+            </nav>
+        </div>
+
+        <!-- Sidebar Footer: Active User Profile & Switcher -->
+        <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5 truncate">
+                    <div id="userAvatar" class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                        A
+                    </div>
+                    <div class="truncate">
+                        <div id="userFullName" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Administrator</div>
+                        <div id="userRoleBadge" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono uppercase">SUPER_ADMIN</div>
+                    </div>
+                </div>
+                <button onclick="openAuthModal()" title="Switch User / Login" class="p-1.5 hover:bg-slate-200 dark:hover:bg-surface-700 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+
+        <!-- Top Navigation Bar -->
+        <header class="h-16 px-6 bg-white dark:bg-surface-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-20 shadow-xs">
+            <!-- Left: Breadcrumb -->
             <div class="flex items-center space-x-3">
-                <!-- Camera ON / OFF Toggle Button -->
-                <button id="cameraToggleBtn" onclick="toggleCameraPower()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition shadow-sm">
-                    <span id="cameraStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <span id="cameraToggleText">Camera: ON</span>
+                <span id="breadcrumbSection" class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Overview</span>
+                <span class="text-slate-300 dark:text-slate-600">/</span>
+                <span id="breadcrumbTitle" class="text-sm font-semibold text-slate-800 dark:text-slate-200">Institutional Dashboard</span>
+            </div>
+
+            <!-- Center: Search Input -->
+            <div class="hidden md:flex items-center w-72 lg:w-96">
+                <div class="relative w-full">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                    <input type="text" id="globalSearchInput" onkeyup="handleGlobalSearch(event)" placeholder="Search ISBN, title, barcode, or member..." class="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" />
+                </div>
+            </div>
+
+            <!-- Right: Controls & Toggles -->
+            <div class="flex items-center space-x-2.5">
+                <!-- Camera Status Pill -->
+                <button onclick="toggleCameraState()" id="cameraStatusPill" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 transition">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="cameraStatusText">Camera Active</span>
                 </button>
 
                 <!-- Sound Toggle -->
-                <button id="soundToggle" onclick="toggleSound()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-gray-800/90 hover:bg-gray-700 border border-gray-700 transition">
-                    <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4 text-emerald-400"></i>
-                    <span id="soundText" class="text-gray-200">Sound: ON</span>
+                <button onclick="toggleSound()" id="soundToggleBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-surface-700 transition">
+                    <i data-lucide="volume-2" id="soundIcon" class="w-3.5 h-3.5"></i>
+                    <span id="soundText">Sound ON</span>
                 </button>
 
-                <!-- Export CSV Button -->
-                <a href="/api/export" download="MUET_Library_Catalog.csv" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20 transition">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                    Export CSV
+                <!-- Dark / Light Theme Toggle -->
+                <button onclick="toggleTheme()" title="Toggle Dark/Light Mode" class="p-2 rounded-lg bg-slate-100 dark:bg-surface-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-surface-700 transition">
+                    <i data-lucide="moon" id="themeIcon" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Quick Export Button -->
+                <a href="/api/analytics/export/csv" class="flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Export CSV</span>
                 </a>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <!-- Main Workspace -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-1 w-full flex flex-col gap-6">
+        <!-- Main Dynamic Workspace Views -->
+        <main class="p-6 space-y-6">
 
-        <!-- Top Dual Grid: Camera Stream & Samsung-Style Live Capture Rail -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- Left: Video Viewfinder & Camera Controls (6 Cols) -->
-            <div class="lg:col-span-6 flex flex-col gap-3">
-                <div class="bg-[#0E1526] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative">
-                    <!-- Live Header Badge -->
-                    <div class="absolute top-3 left-3 z-20 flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs">
-                        <span id="streamIndicatorDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-live"></span>
-                        <span id="streamIndicatorText" class="font-semibold text-emerald-400">LENS ACTIVE</span>
+            <!-- 1. DASHBOARD VIEW -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- KPI Statistics Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Book Titles</div>
+                        <div id="statTotalTitles" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">0</div>
                     </div>
-
-                    <!-- Video Container -->
-                    <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
-                        <img id="videoStream" src="/video_feed" alt="MUET Video Feed" class="w-full h-full object-contain" onerror="onStreamError(this)" />
-                        
-                        <!-- Fallback Reconnect Overlay -->
-                        <div id="reconnectBanner" class="hidden absolute inset-0 bg-black/85 flex flex-col items-center justify-center gap-3">
-                            <i data-lucide="camera-off" class="w-12 h-12 text-rose-500 animate-pulse"></i>
-                            <p class="text-sm font-medium text-gray-300">Camera Stream Connecting or Paused...</p>
-                            <button onclick="reloadStream()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition">Refresh Feed</button>
-                        </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Physical Copies</div>
+                        <div id="statTotalCopies" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">0</div>
                     </div>
-
-                    <!-- Camera Control Bar -->
-                    <div class="p-3.5 bg-[#0E1526] border-t border-gray-800 flex flex-wrap items-center justify-between gap-2.5">
-                        <div class="flex items-center gap-2 flex-1 min-w-[220px]">
-                            <i data-lucide="video" class="w-4 h-4 text-gray-400"></i>
-                            <input id="cameraSourceInput" type="text" value="http://127.0.0.1:8080/video" placeholder="e.g. http://127.0.0.1:8080/video or 0" class="bg-gray-800 border border-gray-700 text-xs rounded-lg px-3 py-2 flex-1 focus:outline-none focus:border-amber-500 text-gray-200" />
-                            <button onclick="switchCameraSource()" class="px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs font-semibold rounded-lg transition text-amber-400">Switch</button>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <button onclick="setCameraQuick('http://127.0.0.1:8080/video')" class="px-2.5 py-1.5 bg-gray-800/80 hover:bg-gray-700 text-[11px] rounded border border-gray-700 text-gray-300">ADB Phone</button>
-                            <button onclick="setCameraQuick('0')" class="px-2.5 py-1.5 bg-gray-800/80 hover:bg-gray-700 text-[11px] rounded border border-gray-700 text-gray-300">USB 0</button>
-                        </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Available on Shelf</div>
+                        <div id="statAvailableCopies" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Currently Issued</div>
+                        <div id="statIssuedLoans" class="text-2xl font-bold text-amber-500 mt-1">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Overdue Returns</div>
+                        <div id="statOverdueLoans" class="text-2xl font-bold text-rose-500 mt-1">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Active Members</div>
+                        <div id="statActiveMembers" class="text-2xl font-bold text-sky-500 mt-1">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Unpaid Fines</div>
+                        <div id="statUnpaidFines" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">$0.00</div>
                     </div>
                 </div>
 
-                <!-- Manual Barcode Input Bar -->
-                <div class="bg-[#0E1526] border border-gray-800 rounded-xl p-3 flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2 flex-1">
-                        <i data-lucide="barcode" class="w-5 h-5 text-amber-400"></i>
-                        <input id="manualIsbnInput" type="text" placeholder="Damaged barcode? Type 10 or 13-digit ISBN..." class="bg-gray-800/90 border border-gray-700 text-xs rounded-lg px-3 py-2 flex-1 focus:outline-none focus:border-amber-500 text-gray-200 font-mono" onkeydown="if(event.key==='Enter') submitManualScan()" />
-                        <button onclick="submitManualScan()" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-semibold rounded-lg transition flex items-center gap-1.5">
+                <!-- Circulation Quick Actions -->
+                <div class="p-4 rounded-xl bg-gradient-to-r from-indigo-900/10 via-indigo-900/5 to-transparent border border-indigo-200 dark:border-indigo-900/50 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                            <i data-lucide="zap" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">Express Circulation Desk</div>
+                            <div class="text-[11px] text-slate-500">Scan or enter copy barcode to quickly issue or return books without navigating away.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="switchTab('circulation')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition">Open Issue/Return</button>
+                        <button onclick="switchTab('scanner')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-surface-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-surface-700 transition">Open Live Scanner</button>
+                    </div>
+                </div>
+
+                <!-- Two-Column Recent Activity & Popular Books -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Recent Circulation Transactions -->
+                    <div class="lg:col-span-2 p-5 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i>
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Recent Circulation Transactions</h3>
+                            </div>
+                            <button onclick="switchTab('circulation')" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">View all</button>
+                        </div>
+                        <div class="overflow-x-auto mt-2">
+                            <table class="w-full text-left text-xs">
+                                <thead>
+                                    <tr class="text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
+                                        <th class="py-2.5">Copy Barcode</th>
+                                        <th class="py-2.5">Book Title</th>
+                                        <th class="py-2.5">Member</th>
+                                        <th class="py-2.5">Due Date</th>
+                                        <th class="py-2.5">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardTransactionsBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                    <tr><td colspan="5" class="py-4 text-center text-slate-400">Loading recent transactions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Popular Titles & Category Distribution -->
+                    <div class="p-5 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+                        <div>
+                            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                                <i data-lucide="trending-up" class="w-4 h-4 text-amber-500"></i>
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Most Borrowed Books</h3>
+                            </div>
+                            <div id="dashboardPopularBooks" class="space-y-3 mt-3">
+                                <div class="text-xs text-slate-400">No loan records yet.</div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                                <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-500"></i>
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Category Breakdown</h3>
+                            </div>
+                            <div id="dashboardCategoryList" class="space-y-2 mt-3 text-xs">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 2. SCANNER WORKSPACE VIEW -->
+            <section id="view-scanner" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Camera Viewport with Reticle & Controls -->
+                    <div class="lg:col-span-7 space-y-4">
+                        <div class="relative bg-black rounded-2xl overflow-hidden border border-slate-800 shadow-lg aspect-4/3 flex items-center justify-center">
+                            <img id="liveStreamFeed" src="/video_feed" alt="Real-time Barcode Camera Stream" class="w-full h-full object-contain" />
+                            
+                            <!-- Overlay Badges -->
+                            <div class="absolute top-4 left-4 flex items-center space-x-2">
+                                <span class="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-emerald-400 text-[10px] font-mono border border-emerald-500/30 flex items-center space-x-1.5">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                    <span>LENS ACTIVE</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Camera Source Selector & Switch Bar -->
+                        <div class="p-3.5 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                            <i data-lucide="camera" class="w-4 h-4 text-slate-400"></i>
+                            <input type="text" id="cameraSourceInput" value="http://127.0.0.1:8080/video" placeholder="Camera URL or Index (0, 1)..." class="flex-1 px-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                            <button onclick="switchCameraSource()" class="px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition">Switch</button>
+                            <button onclick="setCameraQuickSource('0')" class="px-2.5 py-1.5 text-xs font-mono bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 rounded-lg transition">USB 0</button>
+                            <button onclick="setCameraQuickSource('http://127.0.0.1:8080/video')" class="px-2.5 py-1.5 text-xs font-mono bg-slate-100 dark:bg-surface-800 hover:bg-slate-200 dark:hover:bg-surface-700 text-slate-700 dark:text-slate-300 rounded-lg transition">ADB Phone</button>
+                        </div>
+
+                        <!-- Manual ISBN Fallback Bar -->
+                        <div class="p-3.5 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
+                            <i data-lucide="keyboard" class="w-4 h-4 text-amber-500"></i>
+                            <input type="text" id="manualIsbnInput" placeholder="Damaged barcode? Type 10 or 13-digit ISBN..." class="flex-1 px-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500" onkeydown="if(event.key==='Enter') submitManualScan()" />
+                            <button onclick="submitManualScan()" class="px-4 py-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg transition">+ Add Book</button>
+                        </div>
+                    </div>
+
+                    <!-- Right: Live Scanned Barcode Stream & Resolution Queue -->
+                    <div class="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-md flex flex-col h-[560px]">
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="scan" class="w-4 h-4 text-emerald-500"></i>
+                                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Live Barcode Captures</h3>
+                            </div>
+                            <span id="scannerWorkerPill" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">4 Workers Ready</span>
+                        </div>
+
+                        <!-- Barcode Event Feed -->
+                        <div id="liveBarcodeFeed" class="flex-1 overflow-y-auto space-y-3 p-1 mt-3">
+                            <div id="emptyBarcodePlaceholder" class="h-full flex flex-col items-center justify-center text-center text-slate-400 p-6">
+                                <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-surface-800 flex items-center justify-center mb-3">
+                                    <i data-lucide="barcode" class="w-6 h-6 text-slate-400"></i>
+                                </div>
+                                <div class="text-xs font-semibold text-slate-700 dark:text-slate-300">Point Camera at ISBN Barcode</div>
+                                <div class="text-[11px] text-slate-400 mt-1 max-w-xs">Cropped physical barcode snapshots will appear here in real-time and resolve catalog metadata automatically.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 3. BOOK CATALOG VIEW -->
+            <section id="view-catalog" class="hidden space-y-6">
+                <!-- Action & Filter Bar -->
+                <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="catalogSearchInput" onkeyup="filterCatalogData()" placeholder="Filter title, ISBN, author..." class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                        </div>
+                        <select id="catalogCategorySelect" onchange="filterCatalogData()" class="px-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="openAddBookModal()" class="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition">
                             <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                            Add Book
+                            <span>Register New Book</span>
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Right: Samsung-Style Real-time Barcode Snapshot Stream (6 Cols) -->
-            <div class="lg:col-span-6 flex flex-col gap-3">
+                <!-- Catalog DataTable -->
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Cover</th>
+                                    <th class="px-4 py-3">ISBN</th>
+                                    <th class="px-4 py-3">Title</th>
+                                    <th class="px-4 py-3">Authors</th>
+                                    <th class="px-4 py-3">Publisher & Year</th>
+                                    <th class="px-4 py-3">Category</th>
+                                    <th class="px-4 py-3">Inventory Copies</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="8" class="text-center py-8 text-slate-400">Loading library catalog...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
-                <!-- Header & Live Counter -->
-                <div class="bg-[#0E1526] border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-                            <i data-lucide="scan" class="w-4 h-4"></i>
+
+            <!-- 4. PHYSICAL INVENTORY VIEW -->
+            <section id="view-inventory" class="hidden space-y-6">
+                <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="copySearchInput" onkeyup="loadInventoryCopies()" placeholder="Search copy barcode..." class="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none" />
                         </div>
+                        <select id="copyStatusSelect" onchange="loadInventoryCopies()" class="px-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
+                            <option value="">All Statuses</option>
+                            <option value="available">Available on Shelf</option>
+                            <option value="issued">Issued to Member</option>
+                            <option value="reserved">Reserved Hold</option>
+                            <option value="maintenance">Under Maintenance</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="openAddCopyModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition">+ Add Physical Copy</button>
+                    </div>
+                </div>
+
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Copy Barcode</th>
+                                    <th class="px-4 py-3">Book Title</th>
+                                    <th class="px-4 py-3">ISBN</th>
+                                    <th class="px-4 py-3">Shelf Location</th>
+                                    <th class="px-4 py-3">Condition</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryCopiesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">Loading physical inventory copies...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 5. CIRCULATION (ISSUE & RETURN) VIEW -->
+            <section id="view-circulation" class="hidden space-y-6">
+                <!-- Dual Issue / Return Quick Action Desk -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Issue Card -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></div>
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Issue Book to Member</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[11px] font-semibold text-slate-500">Book Copy Barcode</label>
+                                <input type="text" id="issueCopyBarcode" placeholder="e.g. BC-9780132350884-01" class="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-semibold text-slate-500">Member Roll # / Member Code / Username</label>
+                                <input type="text" id="issueMemberIdentifier" placeholder="e.g. 20SW01 or student1" class="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                            </div>
+                            <div>
+                                <label class="text-[11px] font-semibold text-slate-500">Loan Period (Days)</label>
+                                <input type="number" id="issueCustomDays" value="14" class="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none" />
+                            </div>
+                            <button onclick="handleIssueSubmit()" class="w-full py-2.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">Confirm Issue Loan</button>
+                        </div>
+                    </div>
+
+                    <!-- Return Card -->
+                    <div class="p-5 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center space-x-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs"><i data-lucide="arrow-down-left" class="w-4 h-4"></i></div>
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Return Book Copy</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[11px] font-semibold text-slate-500">Book Copy Barcode</label>
+                                <input type="text" id="returnCopyBarcode" placeholder="Scan or enter BC-..." class="w-full mt-1 px-3 py-2 text-xs rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" onkeydown="if(event.key==='Enter') handleReturnSubmit()" />
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-50 dark:bg-surface-850 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
+                                Overdue returns will automatically calculate fines ($1.00/day) and update outstanding student balance ledger.
+                            </div>
+                            <button onclick="handleReturnSubmit()" class="w-full py-2.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition">Process Book Return</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Loans Table -->
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="list" class="w-4 h-4 text-indigo-500"></i>
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Active Checked-Out Loans</h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="loadCirculationLoans('active')" class="px-2.5 py-1 text-xs rounded bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300">Active</button>
+                            <button onclick="loadCirculationLoans('overdue')" class="px-2.5 py-1 text-xs rounded bg-rose-50 dark:bg-rose-950/40 text-rose-500 border border-rose-300 dark:border-rose-900">Overdue</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Barcode</th>
+                                    <th class="px-4 py-3">Book Title</th>
+                                    <th class="px-4 py-3">Member Name</th>
+                                    <th class="px-4 py-3">Member Code</th>
+                                    <th class="px-4 py-3">Due Date</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Circulation Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="circulationLoansTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">Loading loans...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 6. RESERVATIONS VIEW -->
+            <section id="view-reservations" class="hidden space-y-6">
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Book Hold Reservations Queue</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Priority #</th>
+                                    <th class="px-4 py-3">Book Title</th>
+                                    <th class="px-4 py-3">Member</th>
+                                    <th class="px-4 py-3">Reserved At</th>
+                                    <th class="px-4 py-3">Expiry Date</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">No pending hold reservations.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 7. MEMBERS & STAFF VIEW -->
+            <section id="view-members" class="hidden space-y-6">
+                <div class="p-4 rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Registered Institutional Members</h3>
+                    <button onclick="openRegisterMemberModal()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition">+ Register New Member</button>
+                </div>
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Member Code</th>
+                                    <th class="px-4 py-3">Full Name</th>
+                                    <th class="px-4 py-3">Username / Email</th>
+                                    <th class="px-4 py-3">Department</th>
+                                    <th class="px-4 py-3">Role</th>
+                                    <th class="px-4 py-3">Max Borrow</th>
+                                    <th class="px-4 py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="membersTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="7" class="text-center py-8 text-slate-400">Loading members...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 8. FINES & PAYMENTS VIEW -->
+            <section id="view-fines" class="hidden space-y-6">
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Circulation Fines & Overdue Penalties</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Member</th>
+                                    <th class="px-4 py-3">Roll / Code</th>
+                                    <th class="px-4 py-3">Total Amount</th>
+                                    <th class="px-4 py-3">Paid</th>
+                                    <th class="px-4 py-3">Balance</th>
+                                    <th class="px-4 py-3">Reason</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finesTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <tr><td colspan="8" class="text-center py-8 text-slate-400">Loading fine ledgers...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 9. REPORTS & ANALYTICS VIEW -->
+            <section id="view-reports" class="hidden space-y-6">
+                <div class="p-6 rounded-2xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
                         <div>
-                            <h3 class="font-bold text-xs uppercase tracking-wider text-white">Live Barcode Captures</h3>
-                            <p class="text-[11px] text-gray-400">Click any card to inspect physical barcode</p>
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Institutional Catalog & Inventory Export</h3>
+                            <p class="text-xs text-slate-500 mt-1">Generate dynamic CSV exports directly from live relational database records for audit and procurement reviews.</p>
+                        </div>
+                        <a href="/api/analytics/export/csv" class="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white flex items-center space-x-2 transition">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                            <span>Download Full Catalog CSV</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 10. SECURITY AUDIT LOGS VIEW -->
+            <section id="view-audit" class="hidden space-y-6">
+                <div class="rounded-xl bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="shield" class="w-4 h-4 text-indigo-500"></i>
+                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Immutable Security & Transaction Audit Trail</h3>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span id="statQueueCount" class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            4 Workers Ready
-                        </span>
-                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                            <span id="statTotalBooks">0</span> Books
-                        </span>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 dark:bg-surface-850 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                                <tr>
+                                    <th class="px-4 py-3">Timestamp</th>
+                                    <th class="px-4 py-3">User</th>
+                                    <th class="px-4 py-3">Action</th>
+                                    <th class="px-4 py-3">Resource</th>
+                                    <th class="px-4 py-3">Details</th>
+                                    <th class="px-4 py-3">IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditLogsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-[11px]">
+                                <tr><td colspan="6" class="text-center py-8 text-slate-400">Loading audit logs...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+            </section>
 
-                <!-- Dynamic Barcode Snapshots Feed Container (Fixed non-squishing layout) -->
-                <div id="barcodeFeedContainer" class="bg-[#0E1526] border border-gray-800 rounded-2xl p-4 flex flex-col gap-3.5 h-[420px] overflow-y-auto custom-scrollbar">
-                    
-                    <!-- Empty Placeholder State -->
-                    <div id="emptyFeedPlaceholder" class="m-auto flex flex-col items-center justify-center py-10 text-center text-gray-500">
-                        <div class="w-16 h-16 rounded-2xl bg-gray-800/50 border border-gray-700/50 flex items-center justify-center text-amber-400/60 mb-3">
-                            <i data-lucide="scan-barcode" class="w-8 h-8 animate-pulse"></i>
-                        </div>
-                        <h4 class="text-sm font-semibold text-gray-300">Point Camera at Book Barcode(s)</h4>
-                        <p class="text-xs text-gray-500 mt-1 max-w-[280px]">
-                            Physical barcode snapshots will appear here in real-time. Click any card to zoom and verify!
-                        </p>
-                    </div>
+        </main>
+    </div>
 
-                </div>
+    <!-- MODALS -->
 
+    <!-- Add Book Modal -->
+    <div id="addBookModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-900 rounded-2xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Register New Book Title</h3>
+                <button onclick="closeModal('addBookModal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-        </div>
-
-        <!-- Bottom: MUET Central Library Database Table -->
-        <div class="bg-[#0E1526] border border-gray-800 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-                        <i data-lucide="book-marked" class="w-5 h-5"></i>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="font-semibold text-slate-600 dark:text-slate-400">ISBN (10 or 13 digits) *</label>
+                    <div class="flex space-x-2 mt-1">
+                        <input type="text" id="mbIsbn" placeholder="9780132350884" class="flex-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
+                        <button onclick="lookupOnlineMetadata()" class="px-3 py-1.5 font-semibold bg-slate-200 dark:bg-surface-700 hover:bg-slate-300 rounded-lg">Auto-Fetch</button>
                     </div>
-                    <div>
-                        <h2 class="font-bold text-base text-white">
-                            MUET Central Library Inventory Catalog
-                        </h2>
-                        <p class="text-xs text-gray-400">Real-time persistent database records</p>
-                    </div>
-                </div>
-
-                <!-- Table Search Filter -->
-                <div class="flex items-center gap-2">
-                    <div class="relative">
-                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-400"></i>
-                        <input id="searchInput" oninput="filterCatalog()" type="text" placeholder="Search by title, author, or ISBN..." class="bg-gray-800/80 border border-gray-700 text-xs rounded-lg pl-9 pr-4 py-2 w-64 focus:outline-none focus:border-amber-500 text-gray-200" />
-                    </div>
-                    <button onclick="loadBooksCatalog()" title="Refresh Catalog" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300">
-                        <i data-lucide="rotate-cw" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Table Container -->
-            <div class="overflow-x-auto custom-scrollbar border border-gray-800 rounded-xl">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-gray-800/70 text-gray-300 uppercase text-[10px] tracking-wider border-b border-gray-700">
-                        <tr>
-                            <th class="px-4 py-3">Cover</th>
-                            <th class="px-4 py-3">ISBN</th>
-                            <th class="px-4 py-3">Title</th>
-                            <th class="px-4 py-3">Authors</th>
-                            <th class="px-4 py-3">Publisher & Year</th>
-                            <th class="px-4 py-3">Category</th>
-                            <th class="px-4 py-3">Scanned Time</th>
-                            <th class="px-4 py-3 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="catalogTableBody" class="divide-y divide-gray-800/60 font-normal">
-                        <tr>
-                            <td colspan="8" class="text-center py-8 text-gray-500">Loading catalog items...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- PHYSICAL BARCODE INSPECTION MODAL (Click on any barcode card to verify) -->
-    <div id="barcodeInspectorModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md hidden transition-all duration-300">
-        <div class="bg-[#0F172A] border-2 border-amber-500/70 rounded-3xl p-6 shadow-2xl max-w-lg w-full relative">
-            <!-- Close Button -->
-            <button onclick="closeBarcodeModal()" class="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-full bg-gray-800 hover:bg-gray-700 transition">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-
-            <!-- Modal Header -->
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
-                    <i data-lucide="scan-line" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h3 class="text-base font-bold text-white leading-tight">Physical Barcode Inspector</h3>
-                    <p class="text-xs text-amber-400 font-medium">MUET Central Library Verification Lens</p>
+                    <label class="font-semibold text-slate-600 dark:text-slate-400">Title *</label>
+                    <input type="text" id="mbTitle" placeholder="Clean Code" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
                 </div>
-            </div>
-
-            <!-- Full-size Physical Barcode Snapshot Display -->
-            <div class="bg-black/90 border border-gray-700 rounded-2xl p-3 flex flex-col items-center justify-center mb-4 relative overflow-hidden">
-                <div class="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2 flex items-center gap-1.5 self-start">
-                    <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i>
-                    Actual Captured Camera Snapshot
+                <div>
+                    <label class="font-semibold text-slate-600 dark:text-slate-400">Authors</label>
+                    <input type="text" id="mbAuthors" placeholder="Robert C. Martin" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
                 </div>
-                <div class="w-full max-h-48 rounded-xl overflow-hidden flex items-center justify-center bg-gray-950 p-2 border border-gray-800">
-                    <img id="modalBarcodeImg" src="" alt="Physical Barcode" class="max-h-44 w-auto object-contain rounded" />
-                </div>
-            </div>
-
-            <!-- Verified Book Metadata Card in Modal -->
-            <div class="bg-[#1E293B]/70 border border-gray-700 rounded-2xl p-4 flex items-start gap-4">
-                <div id="modalCoverContainer" class="flex-shrink-0">
-                    <!-- Dynamic cover image -->
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span id="modalIsbn" class="font-mono text-xs font-bold text-amber-400">
-                            ISBN: 978...
-                        </span>
-                        <span id="modalStatusBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Verified & Cataloged
-                        </span>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-slate-600 dark:text-slate-400">Publisher</label>
+                        <input type="text" id="mbPublisher" placeholder="Prentice Hall" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
                     </div>
-                    <h4 id="modalTitle" class="text-sm font-bold text-white line-clamp-2 leading-snug">Book Title</h4>
-                    <p id="modalAuthor" class="text-xs text-gray-300 mt-1"><span class="text-gray-500">Author:</span> Author Name</p>
-                    <p id="modalPublisher" class="text-xs text-gray-400 mt-0.5"><span class="text-gray-500">Publisher:</span> Publisher (Year)</p>
-                    <p id="modalTimestamp" class="text-[11px] text-gray-500 mt-2">Scanned: Just now</p>
+                    <div>
+                        <label class="font-semibold text-slate-600 dark:text-slate-400">Publish Year</label>
+                        <input type="text" id="mbYear" placeholder="2008" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-semibold text-slate-600 dark:text-slate-400">Initial Physical Copies</label>
+                        <input type="number" id="mbInitialCopies" value="2" min="1" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-600 dark:text-slate-400">Category</label>
+                        <input type="text" id="mbCategories" placeholder="Software Engineering" class="w-full mt-1 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-surface-800 border border-slate-200 dark:border-slate-700" />
+                    </div>
                 </div>
             </div>
-
-            <div class="mt-5 flex justify-end">
-                <button onclick="closeBarcodeModal()" class="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition">
-                    Done Inspecting
-                </button>
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button onclick="closeModal('addBookModal')" class="px-4 py-2 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-surface-800 text-slate-600 dark:text-slate-400">Cancel</button>
+                <button onclick="submitAddBook()" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">Save & Provision Copies</button>
             </div>
         </div>
     </div>
 
-    <!-- Web Audio Scanner Beep Chime -->
+    <!-- Auth / Quick Login Modal -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-surface-900 rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Switch User / Login</h3>
+                <button onclick="closeModal('authModal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div class="flex flex-col space-y-2">
+                    <button onclick="quickLogin('admin', 'Admin@1234')" class="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-left hover:bg-indigo-100 transition">
+                        <div class="font-bold text-indigo-700 dark:text-indigo-300">Super Administrator</div>
+                        <div class="text-[10px] text-slate-500">Username: admin (Full system control)</div>
+                    </button>
+                    <button onclick="quickLogin('librarian', 'Lib@1234')" class="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-left hover:bg-emerald-100 transition">
+                        <div class="font-bold text-emerald-700 dark:text-emerald-300">Librarian</div>
+                        <div class="text-[10px] text-slate-500">Username: librarian (Circulation & cataloging)</div>
+                    </button>
+                    <button onclick="quickLogin('student1', 'Student@1234')" class="p-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-left hover:bg-sky-100 transition">
+                        <div class="font-bold text-sky-700 dark:text-sky-300">Student / Member</div>
+                        <div class="text-[10px] text-slate-500">Username: student1 (Self-service loans/holds)</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENT SCRIPT -->
     <script>
+        // State variables
+        let currentUser = null;
         let soundEnabled = true;
         let lastBeepTime = 0;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let activeTab = 'dashboard';
+        let allBooks = [];
 
+        // Safe HTML entity escaping helper to completely eliminate DOM XSS
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Web Audio Synthesizer Beep Chime
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playScannerBeep() {
             if (!soundEnabled) return;
             const now = Date.now();
             if (now - lastBeepTime < 180) return;
             lastBeepTime = now;
-
             try {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sine';
@@ -368,359 +781,591 @@
 
         function toggleSound() {
             soundEnabled = !soundEnabled;
-            document.getElementById('soundText').innerText = soundEnabled ? "Sound: ON" : "Sound: OFF";
-            document.getElementById('soundIcon').className = soundEnabled ? "w-4 h-4 text-emerald-400" : "w-4 h-4 text-gray-500";
+            document.getElementById('soundText').innerText = soundEnabled ? 'Sound ON' : 'Sound Muted';
+            document.getElementById('soundIcon').setAttribute('data-lucide', soundEnabled ? 'volume-2' : 'volume-x');
+            lucide.createIcons();
         }
-    </script>
 
-    <!-- App State and Samsung-Style Barcode Snapshot Engine -->
-    <script>
-        let allBooks = [];
-        const activeBarcodeCards = new Map(); // isbn -> DOM element
-        const barcodeSnapshotStore = new Map(); // isbn -> { barcodeImage, book, status, timestamp }
-
-        function openBarcodeInspector(isbn) {
-            const data = barcodeSnapshotStore.get(isbn);
-            if (!data) return;
-
-            const modal = document.getElementById('barcodeInspectorModal');
-            document.getElementById('modalIsbn').innerText = `ISBN: ${isbn}`;
-            document.getElementById('modalBarcodeImg').src = data.barcodeImage || "";
-
-            const statusBadge = document.getElementById('modalStatusBadge');
-            const titleEl = document.getElementById('modalTitle');
-            const authorEl = document.getElementById('modalAuthor');
-            const pubEl = document.getElementById('modalPublisher');
-            const coverContainer = document.getElementById('modalCoverContainer');
-            const timeEl = document.getElementById('modalTimestamp');
-
-            timeEl.innerText = `Captured: ${data.timestamp || 'Today'}`;
-
-            if (data.status === 'verified' && data.book) {
-                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-                statusBadge.innerText = "Verified & Saved";
-                titleEl.innerText = data.book.title;
-                authorEl.innerHTML = `<span class="text-gray-500">Author:</span> ${data.book.authors || 'Unknown'}`;
-                pubEl.innerHTML = `<span class="text-gray-500">Publisher:</span> ${data.book.publisher || 'N/A'} (${data.book.publish_date || 'N/A'})`;
-
-                if (data.book.cover_image_url) {
-                    coverContainer.innerHTML = `<img src="${data.book.cover_image_url}" class="w-16 h-24 object-cover rounded-lg shadow-md border border-gray-700" />`;
-                } else {
-                    coverContainer.innerHTML = `<div class="w-16 h-24 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500 border border-gray-700"><i data-lucide="book" class="w-6 h-6"></i></div>`;
-                }
-            } else if (data.status === 'already_registered') {
-                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30";
-                statusBadge.innerText = "Already Cataloged";
-                titleEl.innerText = data.book?.title || "Book Already In Catalog";
-                authorEl.innerHTML = `<span class="text-gray-500">Status:</span> Duplicate barcode`;
-                pubEl.innerHTML = `<span class="text-gray-500">Registry:</span> MUET Central Library`;
-                coverContainer.innerHTML = `<div class="w-16 h-24 bg-blue-950/40 rounded-lg flex items-center justify-center text-blue-400 border border-blue-800"><i data-lucide="check-circle" class="w-6 h-6"></i></div>`;
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                document.getElementById('themeIcon').setAttribute('data-lucide', 'sun');
             } else {
-                statusBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30";
-                statusBadge.innerText = "Unverified Barcode";
-                titleEl.innerText = "Not Found in Public Book Databases";
-                authorEl.innerHTML = `<span class="text-gray-500">Action:</span> Discarded`;
-                pubEl.innerHTML = `<span class="text-gray-500">Note:</span> Might be non-book barcode`;
-                coverContainer.innerHTML = `<div class="w-16 h-24 bg-rose-950/40 rounded-lg flex items-center justify-center text-rose-400 border border-rose-800"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>`;
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('themeIcon').setAttribute('data-lucide', 'moon');
             }
-
-            modal.classList.remove('hidden');
             lucide.createIcons();
         }
 
-        function closeBarcodeModal() {
-            document.getElementById('barcodeInspectorModal').classList.add('hidden');
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`nav-${tabId}`);
+            if (btn) btn.classList.add('active');
+
+            // Update Breadcrumb
+            document.getElementById('breadcrumbTitle').innerText = tabId.charAt(0).toUpperCase() + tabId.slice(1);
+
+            // Load relevant data
+            if (tabId === 'dashboard') loadDashboardData();
+            if (tabId === 'catalog') loadCatalogData();
+            if (tabId === 'inventory') loadInventoryCopies();
+            if (tabId === 'circulation') loadCirculationLoans('active');
+            if (tabId === 'reservations') loadReservationsData();
+            if (tabId === 'members') loadMembersData();
+            if (tabId === 'fines') loadFinesData();
+            if (tabId === 'audit') loadAuditLogsData();
         }
 
-        function addBarcodeSnapshotCard(isbn, barcodeImageB64, timeStr) {
-            const container = document.getElementById('barcodeFeedContainer');
-            const placeholder = document.getElementById('emptyFeedPlaceholder');
-            if (placeholder) placeholder.classList.add('hidden');
-
-            // Store snapshot
-            barcodeSnapshotStore.set(isbn, {
-                barcodeImage: barcodeImageB64,
-                book: null,
-                status: 'scanning',
-                timestamp: timeStr || new Date().toLocaleTimeString()
-            });
-
-            // If card already exists for this ISBN in feed, don't duplicate
-            if (activeBarcodeCards.has(isbn)) {
-                return activeBarcodeCards.get(isbn);
-            }
-
-            const card = document.createElement('div');
-            card.id = `card-${isbn}`;
-            card.onclick = () => openBarcodeInspector(isbn);
-            // Notice: flex-shrink-0 and min-h-[84px] PREVENT SQUISHING!
-            card.className = "bg-[#141C30] border border-amber-500/50 hover:border-amber-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
-
-            const barcodeImgHtml = barcodeImageB64 ?
-                `<div class="relative w-24 h-14 bg-black rounded-lg overflow-hidden border border-amber-500/60 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition">
-                    <img src="${barcodeImageB64}" class="w-full h-full object-cover" />
-                    <!-- Laser Scanning Sweep Line -->
-                    <div id="laser-${isbn}" class="laser-beam"></div>
-                </div>` :
-                `<div class="relative w-24 h-14 bg-gray-800 rounded-lg border border-amber-500/60 flex-shrink-0 flex items-center justify-center text-amber-400 group-hover:scale-105 transition">
-                    <i data-lucide="barcode" class="w-7 h-7"></i>
-                    <div id="laser-${isbn}" class="laser-beam"></div>
-                </div>`;
-
-            card.innerHTML = `
-                ${barcodeImgHtml}
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="font-mono text-xs font-bold text-amber-400 tracking-tight">${isbn}</span>
-                        <span id="status-badge-${isbn}" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25 flex-shrink-0">
-                            Verifying...
-                        </span>
-                    </div>
-                    <h4 id="title-${isbn}" class="text-xs font-semibold text-gray-200 truncate">Searching MUET Library & OpenLibrary...</h4>
-                    <div class="flex items-center justify-between text-[11px] text-gray-500 mt-1">
-                        <span id="meta-${isbn}">${timeStr || 'Just now'}</span>
-                        <span class="text-[10px] text-gray-400 group-hover:text-amber-400 flex items-center gap-1">
-                            <i data-lucide="zoom-in" class="w-3 h-3"></i> Inspect
-                        </span>
-                    </div>
-                </div>
-            `;
-
-            // Insert at the top of feed (newest first)
-            container.insertBefore(card, container.firstChild);
-            activeBarcodeCards.set(isbn, card);
-            lucide.createIcons();
-
-            return card;
-        }
-
-        function updateBarcodeCardState(isbn, state, data) {
-            let card = activeBarcodeCards.get(isbn);
-            if (!card) {
-                card = addBarcodeSnapshotCard(isbn, data?.barcode_image || "", "Just now");
-            }
-
-            // Update stored snapshot data
-            const existing = barcodeSnapshotStore.get(isbn) || {};
-            existing.status = state;
-            if (data?.book) existing.book = data.book;
-            if (data?.barcode_image) existing.barcodeImage = data.barcode_image;
-            barcodeSnapshotStore.set(isbn, existing);
-
-            const laser = document.getElementById(`laser-${isbn}`);
-            const badge = document.getElementById(`status-badge-${isbn}`);
-            const titleEl = document.getElementById(`title-${isbn}`);
-            const metaEl = document.getElementById(`meta-${isbn}`);
-
-            if (state === 'verified') {
-                // Success: Green Border & Glow (Solid min-h-[84px] and flex-shrink-0 preserved!)
-                card.className = "bg-[#101D2D] border-2 border-emerald-500/70 hover:border-emerald-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-lg flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
-                if (laser) laser.remove();
-
-                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0";
-                badge.innerText = "Verified & Saved";
-
-                titleEl.className = "text-xs font-bold text-white truncate";
-                titleEl.innerText = data.book.title;
-
-                metaEl.className = "text-[11px] text-gray-400 truncate";
-                metaEl.innerText = `${data.book.authors || 'Unknown'} • ${data.book.publisher || 'N/A'}`;
-
-            } else if (state === 'already_registered') {
-                // Already in catalog: Blue/Cyan
-                card.className = "bg-[#141C30] border border-blue-500/50 hover:border-blue-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
-                if (laser) laser.remove();
-
-                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 flex-shrink-0";
-                badge.innerText = "Already Cataloged";
-
-                titleEl.className = "text-xs font-semibold text-gray-300 truncate";
-                titleEl.innerText = "Book already exists in MUET Library database";
-                metaEl.innerText = "Duplicate scan ignored";
-
-            } else if (state === 'not_found') {
-                // Unverified: Red
-                card.className = "bg-[#1E141B] border border-rose-500/50 hover:border-rose-400 rounded-xl p-3 flex items-center gap-3.5 relative overflow-hidden shadow-md flex-shrink-0 min-h-[84px] cursor-pointer group transition-all duration-200";
-                if (laser) laser.remove();
-
-                badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25 flex-shrink-0";
-                badge.innerText = "No Registry Match";
-
-                titleEl.className = "text-xs font-semibold text-gray-400 truncate";
-                titleEl.innerText = "Not found in public book databases";
-                metaEl.innerText = "Ignored to prevent catalog pollution";
-            }
-
-            lucide.createIcons();
-        }
-
-        async function toggleCameraPower() {
+        // Authentication & Quick Switch
+        async function fetchCurrentUser() {
             try {
-                const res = await fetch('/api/camera/toggle', { method: 'POST' });
-                const data = await res.json();
-                const btn = document.getElementById('cameraToggleBtn');
-                const dot = document.getElementById('cameraStatusDot');
-                const txt = document.getElementById('cameraToggleText');
-                const streamTxt = document.getElementById('streamIndicatorText');
-                const streamDot = document.getElementById('streamIndicatorDot');
-
-                if (data.is_paused) {
-                    btn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition shadow-sm";
-                    dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
-                    txt.innerText = "Camera: OFF (Click to Resume)";
-                    streamTxt.innerText = "SCANNER PAUSED";
-                    streamTxt.className = "font-semibold text-rose-400";
-                    streamDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    currentUser = await res.json();
+                    document.getElementById('userFullName').innerText = escapeHtml(currentUser.full_name);
+                    document.getElementById('userRoleBadge').innerText = escapeHtml(currentUser.role);
+                    document.getElementById('userAvatar').innerText = escapeHtml(currentUser.full_name.charAt(0));
                 } else {
-                    btn.className = "flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition shadow-sm";
-                    dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
-                    txt.innerText = "Camera: ON";
-                    streamTxt.innerText = "LENS ACTIVE";
-                    streamTxt.className = "font-semibold text-emerald-400";
-                    streamDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-live";
-                    reloadStream();
+                    // Try auto login as admin for initial development session
+                    await quickLogin('admin', 'Admin@1234');
                 }
-            } catch (err) {
-                alert("Error toggling camera: " + err);
+            } catch (e) {
+                console.error("Auth me check failed:", e);
             }
         }
 
-        async function loadBooksCatalog() {
+        async function quickLogin(username, password) {
             try {
-                const res = await fetch('/api/books');
-                if (res.ok) {
-                    allBooks = await res.json();
-                    renderCatalogTable(allBooks);
-                    document.getElementById('statTotalBooks').innerText = allBooks.length;
-                }
-            } catch (err) {
-                console.error("Failed to load catalog:", err);
-            }
-        }
-
-        function renderCatalogTable(books) {
-            const tbody = document.getElementById('catalogTableBody');
-            if (!books || books.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-500">No books registered yet. Point camera at barcode to scan!</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = books.map(b => `
-                <tr class="hover:bg-gray-800/40 transition">
-                    <td class="px-4 py-2.5">
-                        ${b.cover_image_url ? 
-                            `<img src="${b.cover_image_url}" class="w-8 h-11 object-cover rounded shadow border border-gray-700" />` : 
-                            `<div class="w-8 h-11 bg-gray-800 rounded flex items-center justify-center text-gray-500"><i data-lucide="book" class="w-4 h-4"></i></div>`}
-                    </td>
-                    <td class="px-4 py-2.5 font-mono text-[11px] text-amber-400 font-semibold">${b.isbn}</td>
-                    <td class="px-4 py-2.5 font-semibold text-gray-200 max-w-[200px] truncate" title="${b.title}">${b.title}</td>
-                    <td class="px-4 py-2.5 text-gray-300 max-w-[150px] truncate">${b.authors}</td>
-                    <td class="px-4 py-2.5 text-gray-400">${b.publisher || 'N/A'} <span class="text-gray-500">(${b.publish_date || 'N/A'})</span></td>
-                    <td class="px-4 py-2.5 text-gray-400 max-w-[120px] truncate">${b.categories || 'General'}</td>
-                    <td class="px-4 py-2.5 text-gray-500 text-[11px] whitespace-nowrap">${b.scanned_at}</td>
-                    <td class="px-4 py-2.5 text-right">
-                        <button onclick="deleteBook('${b.isbn}')" title="Delete record" class="p-1.5 hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 rounded transition">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-
-            lucide.createIcons();
-        }
-
-        function filterCatalog() {
-            const q = document.getElementById('searchInput').value.toLowerCase().trim();
-            if (!q) {
-                renderCatalogTable(allBooks);
-                return;
-            }
-            const filtered = allBooks.filter(b => 
-                (b.title && b.title.toLowerCase().includes(q)) ||
-                (b.isbn && b.isbn.toLowerCase().includes(q)) ||
-                (b.authors && b.authors.toLowerCase().includes(q))
-            );
-            renderCatalogTable(filtered);
-        }
-
-        async function deleteBook(isbn) {
-            if (!confirm(`Are you sure you want to delete ISBN ${isbn} from MUET Catalog?`)) return;
-            try {
-                const res = await fetch(`/api/books/${isbn}`, { method: 'DELETE' });
-                if (res.ok) {
-                    allBooks = allBooks.filter(b => b.isbn !== isbn);
-                    renderCatalogTable(allBooks);
-                    document.getElementById('statTotalBooks').innerText = allBooks.length;
-                }
-            } catch (err) {
-                alert("Error deleting book: " + err);
-            }
-        }
-
-        async function submitManualScan() {
-            const input = document.getElementById('manualIsbnInput');
-            const isbn = input.value.trim();
-            if (!isbn) return;
-
-            try {
-                const res = await fetch('/api/scan_manual', {
+                const res = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ isbn })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                if (res.ok) {
+                    closeModal('authModal');
+                    await fetchCurrentUser();
+                    loadDashboardData();
+                } else {
+                    alert("Login failed.");
+                }
+            } catch (e) {
+                console.error("Login error:", e);
+            }
+        }
+
+        function openAuthModal() { document.getElementById('authModal').classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Dashboard Data Loader
+        async function loadDashboardData() {
+            try {
+                const res = await fetch('/api/analytics/dashboard');
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                document.getElementById('statTotalTitles').innerText = data.kpi.total_titles;
+                document.getElementById('statTotalCopies').innerText = data.kpi.total_copies;
+                document.getElementById('statAvailableCopies').innerText = data.kpi.available_copies;
+                document.getElementById('statIssuedLoans').innerText = data.kpi.issued_loans;
+                document.getElementById('statOverdueLoans').innerText = data.kpi.overdue_loans;
+                document.getElementById('statActiveMembers').innerText = data.kpi.registered_members;
+                document.getElementById('statUnpaidFines').innerText = `$${Number(data.kpi.unpaid_fines).toFixed(2)}`;
+
+                // Render Recent Transactions
+                const txBody = document.getElementById('dashboardTransactionsBody');
+                if (data.recent_transactions.length === 0) {
+                    txBody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">No circulation activity recorded yet.</td></tr>`;
+                } else {
+                    txBody.innerHTML = data.recent_transactions.map(t => `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                            <td class="py-2.5 font-mono text-indigo-500">${escapeHtml(t.copy_barcode)}</td>
+                            <td class="py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(t.book_title)}</td>
+                            <td class="py-2.5">${escapeHtml(t.member_name)} (${escapeHtml(t.member_code)})</td>
+                            <td class="py-2.5 font-mono">${escapeHtml(t.due_date)}</td>
+                            <td class="py-2.5">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.status === 'overdue' ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'}">
+                                    ${escapeHtml(t.status.toUpperCase())}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Render Popular Books
+                const popContainer = document.getElementById('dashboardPopularBooks');
+                if (data.popular_books.length === 0) {
+                    popContainer.innerHTML = `<div class="text-xs text-slate-400">No loan statistics yet.</div>`;
+                } else {
+                    popContainer.innerHTML = data.popular_books.map(b => `
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px]" title="${escapeHtml(b.title)}">${escapeHtml(b.title)}</span>
+                            <span class="font-mono text-indigo-600 dark:text-indigo-400 font-bold">${b.borrow_count} loans</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Render Category Breakdown
+                const catContainer = document.getElementById('dashboardCategoryList');
+                catContainer.innerHTML = data.category_distribution.map(c => `
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-600 dark:text-slate-400">${escapeHtml(c.name)}</span>
+                        <span class="font-mono font-semibold">${c.count} titles</span>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                console.error("Dashboard fetch error:", e);
+            }
+        }
+
+        // Catalog Data Loader
+        async function loadCatalogData() {
+            try {
+                const q = document.getElementById('catalogSearchInput').value;
+                const catId = document.getElementById('catalogCategorySelect').value;
+                let url = `/api/catalog/books?page=1&page_size=50`;
+                if (q) url += `&q=${encodeURIComponent(q)}`;
+                if (catId) url += `&category_id=${catId}`;
+
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const data = await res.json();
+                allBooks = data.items;
+
+                const tbody = document.getElementById('catalogTableBody');
+                if (data.items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No books found matching criteria.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.items.map(b => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850 transition">
+                        <td class="px-4 py-2.5">
+                            ${b.cover_image_url ? 
+                                `<img src="${escapeHtml(b.cover_image_url)}" class="w-8 h-11 object-cover rounded shadow border border-slate-200 dark:border-slate-700" />` : 
+                                `<div class="w-8 h-11 bg-slate-100 dark:bg-surface-800 rounded flex items-center justify-center text-slate-400"><i data-lucide="book" class="w-4 h-4"></i></div>`}
+                        </td>
+                        <td class="px-4 py-2.5 font-mono text-[11px] text-amber-500 font-semibold">${escapeHtml(b.isbn)}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200 max-w-[200px] truncate" title="${escapeHtml(b.title)}">${escapeHtml(b.title)}</td>
+                        <td class="px-4 py-2.5 text-slate-600 dark:text-slate-400 max-w-[150px] truncate">${escapeHtml(b.authors)}</td>
+                        <td class="px-4 py-2.5 text-slate-500">${escapeHtml(b.publisher)} <span class="text-slate-400">(${escapeHtml(b.publish_date)})</span></td>
+                        <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 dark:bg-surface-800 text-slate-700 dark:text-slate-300">${escapeHtml(b.categories)}</span></td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${b.available_copies > 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'}">
+                                ${b.available_copies} / ${b.total_copies} Available
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-right space-x-1">
+                            <button onclick="deleteBookRecord(${b.id})" title="Delete Title" class="p-1 hover:text-rose-500 text-slate-400 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Catalog load error:", e);
+            }
+        }
+
+        function filterCatalogData() {
+            loadCatalogData();
+        }
+
+        async function deleteBookRecord(bookId) {
+            if (!confirm("Are you sure you want to delete this book title and its inventory copies?")) return;
+            try {
+                const res = await fetch(`/api/catalog/books/${bookId}`, {method: 'DELETE'});
+                const data = await res.json();
+                if (res.ok) {
+                    loadCatalogData();
+                    loadDashboardData();
+                } else {
+                    alert(data.detail || "Failed to delete book.");
+                }
+            } catch (e) {
+                alert("Error deleting book: " + e);
+            }
+        }
+
+        function openAddBookModal() {
+            document.getElementById('addBookModal').classList.remove('hidden');
+        }
+
+        async function lookupOnlineMetadata() {
+            const isbn = document.getElementById('mbIsbn').value.trim();
+            if (!isbn) return alert("Please enter ISBN first.");
+            try {
+                const res = await fetch(`/api/catalog/lookup/${isbn}`);
+                if (!res.ok) return alert("No metadata found online for this ISBN.");
+                const data = await res.json();
+                const meta = data.metadata;
+                document.getElementById('mbTitle').value = meta.title || '';
+                document.getElementById('mbAuthors').value = meta.authors || '';
+                document.getElementById('mbPublisher').value = meta.publisher || '';
+                document.getElementById('mbYear').value = meta.publish_date || '';
+                document.getElementById('mbCategories').value = meta.categories || '';
+            } catch (e) {
+                alert("Lookup failed: " + e);
+            }
+        }
+
+        async function submitAddBook() {
+            const payload = {
+                isbn: document.getElementById('mbIsbn').value.trim(),
+                title: document.getElementById('mbTitle').value.trim(),
+                authors: document.getElementById('mbAuthors').value.trim(),
+                publisher: document.getElementById('mbPublisher').value.trim(),
+                publish_date: document.getElementById('mbYear').value.trim(),
+                initial_copies: parseInt(document.getElementById('mbInitialCopies').value) || 2,
+                categories: document.getElementById('mbCategories').value.trim()
+            };
+            if (!payload.isbn || !payload.title) return alert("ISBN and Title are required.");
+
+            try {
+                const res = await fetch('/api/catalog/books', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) {
+                    closeModal('addBookModal');
+                    loadCatalogData();
+                    loadDashboardData();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Error adding book.");
+                }
+            } catch (e) {
+                alert("Save error: " + e);
+            }
+        }
+
+        // Inventory Copies Loader
+        async function loadInventoryCopies() {
+            try {
+                const q = document.getElementById('copySearchInput').value;
+                const status = document.getElementById('copyStatusSelect').value;
+                let url = `/api/inventory/copies?`;
+                if (q) url += `&q=${encodeURIComponent(q)}`;
+                if (status) url += `&status=${status}`;
+
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const copies = await res.json();
+
+                const tbody = document.getElementById('inventoryCopiesTableBody');
+                if (copies.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">No physical copies in inventory.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = copies.map(c => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2.5 font-mono font-bold text-indigo-600 dark:text-indigo-400">${escapeHtml(c.copy_barcode)}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(c.book_title)}</td>
+                        <td class="px-4 py-2.5 font-mono text-slate-500">${escapeHtml(c.book_isbn)}</td>
+                        <td class="px-4 py-2.5 font-mono text-amber-500">${escapeHtml(c.shelf_code)}</td>
+                        <td class="px-4 py-2.5 uppercase text-[10px] text-slate-500 font-semibold">${escapeHtml(c.condition)}</td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.status === 'available' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'}">
+                                ${escapeHtml(c.status.toUpperCase())}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-right">
+                            <button onclick="deleteCopyRecord(${c.id})" class="p-1 hover:text-rose-500 text-slate-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Copies load error:", e);
+            }
+        }
+
+        async function deleteCopyRecord(copyId) {
+            if (!confirm("Delete this physical copy barcode from shelf inventory?")) return;
+            try {
+                const res = await fetch(`/api/inventory/copies/${copyId}`, {method: 'DELETE'});
+                if (res.ok) {
+                    loadInventoryCopies();
+                    loadDashboardData();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Cannot delete copy.");
+                }
+            } catch (e) {
+                alert("Error deleting copy: " + e);
+            }
+        }
+
+        // Circulation Desk (Issue & Return)
+        async function handleIssueSubmit() {
+            const barcode = document.getElementById('issueCopyBarcode').value.trim();
+            const member = document.getElementById('issueMemberIdentifier').value.trim();
+            const days = parseInt(document.getElementById('issueCustomDays').value) || 14;
+
+            if (!barcode || !member) return alert("Please specify both Copy Barcode and Member Code.");
+
+            try {
+                const res = await fetch('/api/circulation/issue', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        copy_barcode: barcode,
+                        member_identifier: member,
+                        custom_loan_days: days
+                    })
                 });
                 const data = await res.json();
-                if (data.success) {
-                    input.value = '';
+                if (res.ok) {
                     playScannerBeep();
-                    updateBarcodeCardState(isbn, 'verified', data);
-                    loadBooksCatalog();
+                    alert(`Success: Book issued to ${data.loan.member_name} until ${data.loan.due_date}`);
+                    document.getElementById('issueCopyBarcode').value = '';
+                    loadCirculationLoans('active');
+                    loadDashboardData();
                 } else {
-                    alert(data.message || "Failed to lookup ISBN");
+                    alert(data.detail || "Issue failed.");
                 }
-            } catch (err) {
-                alert("Scan error: " + err);
+            } catch (e) {
+                alert("Issue error: " + e);
             }
         }
 
-        async function switchCameraSource() {
-            const input = document.getElementById('cameraSourceInput');
-            const source = input.value.trim();
-            if (!source) return;
+        async function handleReturnSubmit() {
+            const barcode = document.getElementById('returnCopyBarcode').value.trim();
+            if (!barcode) return alert("Please scan or enter Copy Barcode.");
 
             try {
-                const res = await fetch('/api/camera/switch', {
+                const res = await fetch('/api/circulation/return', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ source })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({copy_barcode: barcode})
                 });
                 const data = await res.json();
-                if (data.success) {
-                    reloadStream();
+                if (res.ok) {
+                    playScannerBeep();
+                    let msg = `Returned: '${data.loan.book_title}' checked back in.`;
+                    if (data.fine_incurred) {
+                        msg += ` \n⚠️ Overdue fine of $${data.fine_incurred.amount} added to member account.`;
+                    }
+                    alert(msg);
+                    document.getElementById('returnCopyBarcode').value = '';
+                    loadCirculationLoans('active');
+                    loadDashboardData();
                 } else {
-                    alert("Could not switch camera source: " + data.message);
+                    alert(data.detail || "Return failed.");
                 }
-            } catch (err) {
-                alert("Switch error: " + err);
+            } catch (e) {
+                alert("Return error: " + e);
             }
         }
 
-        function setCameraQuick(src) {
-            document.getElementById('cameraSourceInput').value = src;
-            switchCameraSource();
+        async function loadCirculationLoans(status) {
+            try {
+                const res = await fetch(`/api/circulation/loans?status=${status}&limit=50`);
+                if (!res.ok) return;
+                const loans = await res.json();
+
+                const tbody = document.getElementById('circulationLoansTableBody');
+                if (loans.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400">No active loans matching status.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = loans.map(l => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2.5 font-mono text-indigo-600 dark:text-indigo-400 font-bold">${escapeHtml(l.copy_barcode)}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(l.book_title)}</td>
+                        <td class="px-4 py-2.5">${escapeHtml(l.member_name)}</td>
+                        <td class="px-4 py-2.5 font-mono text-slate-500">${escapeHtml(l.member_code)}</td>
+                        <td class="px-4 py-2.5 font-mono font-bold ${l.status === 'overdue' ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}">${escapeHtml(l.due_date)}</td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${l.status === 'overdue' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400'}">
+                                ${escapeHtml(l.status.toUpperCase())}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-right space-x-1">
+                            <button onclick="quickReturnCopy('${l.copy_barcode}')" class="px-2 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded">Return</button>
+                            <button onclick="renewLoanRecord(${l.id})" class="px-2 py-1 text-[11px] font-semibold bg-slate-200 dark:bg-surface-700 text-slate-800 dark:text-slate-200 rounded">Renew (+14d)</button>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Circulation load error:", e);
+            }
         }
 
-        function reloadStream() {
-            const img = document.getElementById('videoStream');
-            const banner = document.getElementById('reconnectBanner');
-            banner.classList.add('hidden');
-            img.src = '/video_feed?t=' + new Date().getTime();
+        async function quickReturnCopy(barcode) {
+            document.getElementById('returnCopyBarcode').value = barcode;
+            await handleReturnSubmit();
         }
 
-        function onStreamError(el) {
-            document.getElementById('reconnectBanner').classList.remove('hidden');
+        async function renewLoanRecord(loanId) {
+            try {
+                const res = await fetch(`/api/circulation/renew/${loanId}`, {method: 'POST'});
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Loan renewed until ${data.loan.due_date} (Renewal count: ${data.loan.renewal_count})`);
+                    loadCirculationLoans('active');
+                } else {
+                    alert(data.detail || "Cannot renew loan.");
+                }
+            } catch (e) {
+                alert("Renewal error: " + e);
+            }
         }
 
-        // Setup Real-time WebSocket for Samsung Lens Multi-Scan Events
+        // Reservations Loader
+        async function loadReservationsData() {
+            try {
+                const res = await fetch('/api/circulation/reservations');
+                if (!res.ok) return;
+                const list = await res.json();
+                const tbody = document.getElementById('reservationsTableBody');
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">No pending hold reservations.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = list.map(r => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2.5 font-bold text-amber-500">#${r.priority}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(r.book_title)}</td>
+                        <td class="px-4 py-2.5">${escapeHtml(r.member_name)} (${escapeHtml(r.member_code)})</td>
+                        <td class="px-4 py-2.5 font-mono text-slate-500">${escapeHtml(r.reserved_at)}</td>
+                        <td class="px-4 py-2.5 font-mono">${escapeHtml(r.expiry_date)}</td>
+                        <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400">${escapeHtml(r.status.toUpperCase())}</span></td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Reservations error:", e);
+            }
+        }
+
+        // Members & Staff Loader
+        async function loadMembersData() {
+            try {
+                const res = await fetch('/api/users');
+                if (!res.ok) return;
+                const users = await res.json();
+                const tbody = document.getElementById('membersTableBody');
+                tbody.innerHTML = users.map(u => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2.5 font-mono font-bold text-indigo-600 dark:text-indigo-400">${escapeHtml(u.member_code || 'STAFF')}</td>
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(u.full_name)}</td>
+                        <td class="px-4 py-2.5 text-slate-500 font-mono text-[11px]">${escapeHtml(u.username)} (${escapeHtml(u.email)})</td>
+                        <td class="px-4 py-2.5">${escapeHtml(u.department || 'General')}</td>
+                        <td class="px-4 py-2.5 uppercase text-[10px] font-bold text-slate-600 dark:text-slate-300">${escapeHtml(u.role)}</td>
+                        <td class="px-4 py-2.5 font-mono">${u.max_borrow_limit} books</td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${u.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'}">
+                                ${u.is_active ? 'ACTIVE' : 'SUSPENDED'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Members error:", e);
+            }
+        }
+
+        // Fines Ledger Loader
+        async function loadFinesData() {
+            try {
+                const res = await fetch('/api/circulation/fines');
+                if (!res.ok) return;
+                const fines = await res.json();
+                const tbody = document.getElementById('finesTableBody');
+                if (fines.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No fine records in ledger. All members clear!</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = fines.map(f => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2.5 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(f.member_name)}</td>
+                        <td class="px-4 py-2.5 font-mono text-slate-500">${escapeHtml(f.member_code)}</td>
+                        <td class="px-4 py-2.5 font-mono font-bold">$${Number(f.amount).toFixed(2)}</td>
+                        <td class="px-4 py-2.5 font-mono text-emerald-600">$${Number(f.paid_amount).toFixed(2)}</td>
+                        <td class="px-4 py-2.5 font-mono font-bold ${f.balance > 0 ? 'text-rose-500' : 'text-slate-500'}">$${Number(f.balance).toFixed(2)}</td>
+                        <td class="px-4 py-2.5 text-slate-500">${escapeHtml(f.reason)}</td>
+                        <td class="px-4 py-2.5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${f.status === 'paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'}">
+                                ${escapeHtml(f.status.toUpperCase())}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-right">
+                            ${f.balance > 0 ? `<button onclick="recordFinePayment(${f.id}, ${f.balance})" class="px-2 py-1 text-[11px] font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded">Pay Fine</button>` : `<span class="text-slate-400 text-[11px]">Cleared</span>`}
+                        </td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Fines error:", e);
+            }
+        }
+
+        async function recordFinePayment(fineId, balance) {
+            const amountStr = prompt(`Enter payment amount (Outstanding balance: $${balance}):`, balance);
+            if (!amountStr) return;
+            const amt = parseFloat(amountStr);
+            if (isNaN(amt) || amt <= 0) return alert("Invalid amount.");
+
+            try {
+                const res = await fetch(`/api/circulation/fines/${fineId}/pay`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({amount: amt})
+                });
+                if (res.ok) {
+                    alert("Payment successfully recorded.");
+                    loadFinesData();
+                    loadDashboardData();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Payment error.");
+                }
+            } catch (e) {
+                alert("Payment error: " + e);
+            }
+        }
+
+        // Security Audit Logs Loader
+        async function loadAuditLogsData() {
+            try {
+                const res = await fetch('/api/audit/logs?limit=50');
+                if (!res.ok) return;
+                const logs = await res.json();
+                const tbody = document.getElementById('auditLogsTableBody');
+                tbody.innerHTML = logs.map(l => `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-surface-850">
+                        <td class="px-4 py-2 text-slate-500 whitespace-nowrap">${escapeHtml(l.timestamp)}</td>
+                        <td class="px-4 py-2 font-semibold text-slate-700 dark:text-slate-300">${escapeHtml(l.user_name)}</td>
+                        <td class="px-4 py-2 text-indigo-500 font-bold">${escapeHtml(l.action)}</td>
+                        <td class="px-4 py-2 text-slate-400">${escapeHtml(l.resource_type)} ${l.resource_id ? `#${escapeHtml(l.resource_id)}` : ''}</td>
+                        <td class="px-4 py-2 text-slate-600 dark:text-slate-400 max-w-xs truncate" title="${escapeHtml(l.details)}">${escapeHtml(l.details)}</td>
+                        <td class="px-4 py-2 text-slate-400">${escapeHtml(l.ip_address)}</td>
+                    </tr>
+                `).join('');
+                lucide.createIcons();
+            } catch (e) {
+                console.error("Audit load error:", e);
+            }
+        }
+
+        // Real-Time Scanner WebSocket Feed
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -729,51 +1374,160 @@
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    const qCounter = document.getElementById('statQueueCount');
-
                     if (data.type === 'barcode_captured') {
-                        // Immediately render physical cropped barcode with animated laser scan
                         addBarcodeSnapshotCard(data.isbn, data.barcode_image, data.timestamp);
                     } else if (data.type === 'book_saved') {
-                        // Transition card to Verified Green with book details
                         playScannerBeep();
-                        updateBarcodeCardState(data.isbn, 'verified', data);
-                        loadBooksCatalog();
-
-                        const rem = data.queue_remaining || 0;
-                        if (rem > 0) {
-                            qCounter.innerText = `${rem} in Queue`;
-                            qCounter.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20";
-                        } else {
-                            qCounter.innerText = "4 Workers Ready";
-                            qCounter.className = "text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-                        }
+                        updateBarcodeCard(data.isbn, 'verified', data);
+                        loadCatalogData();
+                        loadDashboardData();
                     } else if (data.type === 'already_registered') {
-                        updateBarcodeCardState(data.isbn, 'already_registered', data);
+                        updateBarcodeCard(data.isbn, 'registered', data);
                     } else if (data.type === 'not_found') {
-                        updateBarcodeCardState(data.isbn, 'not_found', data);
+                        updateBarcodeCard(data.isbn, 'not_found', data);
                     }
                 } catch (e) {
-                    console.error("WS message parse error:", e);
+                    console.error("WS parse error:", e);
                 }
             };
 
             ws.onclose = () => {
-                console.log("WebSocket disconnected. Reconnecting in 2s...");
                 setTimeout(connectWebSocket, 2000);
             };
         }
 
-        window.onload = () => {
-            lucide.createIcons();
-            loadBooksCatalog();
-            connectWebSocket();
-        };
+        function addBarcodeSnapshotCard(isbn, b64Img, timestamp) {
+            const feed = document.getElementById('liveBarcodeFeed');
+            const placeholder = document.getElementById('emptyBarcodePlaceholder');
+            if (placeholder) placeholder.style.display = 'none';
 
-        // Close modal on Escape key press
-        window.onkeydown = (e) => {
-            if (e.key === 'Escape') closeBarcodeModal();
-        };
+            const cardId = `scan-card-${isbn}`;
+            if (document.getElementById(cardId)) return;
+
+            const card = document.createElement('div');
+            card.id = cardId;
+            card.className = "p-3 rounded-xl bg-slate-50 dark:bg-surface-850 border border-slate-200 dark:border-slate-800 flex items-center space-x-3 transition animate-fadeIn";
+            card.innerHTML = `
+                ${b64Img ? `<img src="${b64Img}" class="w-20 h-10 object-contain rounded bg-white p-0.5 border border-slate-300 dark:border-slate-700 shrink-0" />` : `<div class="w-20 h-10 bg-slate-200 dark:bg-surface-800 rounded flex items-center justify-center font-mono text-[10px] text-slate-500">BARCODE</div>`}
+                <div class="flex-1 truncate">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-mono text-xs font-bold text-amber-500">${escapeHtml(isbn)}</span>
+                        <span id="badge-${cardId}" class="px-2 py-0.2 rounded-full text-[9px] font-mono bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400 animate-pulse">VERIFYING...</span>
+                    </div>
+                    <div id="msg-${cardId}" class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">Fetching online metadata...</div>
+                </div>
+            `;
+            feed.prepend(card);
+        }
+
+        function updateBarcodeCard(isbn, state, data) {
+            const cardId = `scan-card-${isbn}`;
+            const badge = document.getElementById(`badge-${cardId}`);
+            const msg = document.getElementById(`msg-${cardId}`);
+            if (!badge || !msg) return;
+
+            if (state === 'verified') {
+                badge.innerText = "CATALOGED";
+                badge.className = "px-2 py-0.2 rounded-full text-[9px] font-mono bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400";
+                badge.classList.remove('animate-pulse');
+                msg.innerText = data.book ? `${data.book.title} (by ${data.book.authors})` : data.message;
+            } else if (state === 'registered') {
+                badge.innerText = "IN REGISTRY";
+                badge.className = "px-2 py-0.2 rounded-full text-[9px] font-mono bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400";
+                msg.innerText = "Already cataloged in institutional library.";
+            } else if (state === 'not_found') {
+                badge.innerText = "NOT FOUND";
+                badge.className = "px-2 py-0.2 rounded-full text-[9px] font-mono bg-slate-200 text-slate-700 dark:bg-surface-700 dark:text-slate-300";
+                msg.innerText = "Ignored non-book or unlisted barcode.";
+            }
+        }
+
+        async function submitManualScan() {
+            const isbn = document.getElementById('manualIsbnInput').value.trim();
+            if (!isbn) return alert("Please enter ISBN.");
+            try {
+                const res = await fetch('/api/scanner/manual', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({isbn})
+                });
+                const data = await res.json();
+                if (data.success) {
+                    playScannerBeep();
+                    document.getElementById('manualIsbnInput').value = '';
+                    alert(`Book registered: '${data.book.title}'`);
+                    loadCatalogData();
+                    loadDashboardData();
+                } else {
+                    alert(data.message || "Manual scan failed.");
+                }
+            } catch (e) {
+                alert("Scan error: " + e);
+            }
+        }
+
+        async function toggleCameraState() {
+            try {
+                const res = await fetch('/api/scanner/toggle', {method: 'POST'});
+                const data = await res.json();
+                const pill = document.getElementById('cameraStatusPill');
+                const text = document.getElementById('cameraStatusText');
+                if (data.is_paused) {
+                    pill.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 transition";
+                    text.innerText = "Camera Paused";
+                } else {
+                    pill.className = "flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 transition";
+                    text.innerText = "Camera Active";
+                }
+            } catch (e) {
+                console.error("Camera toggle error:", e);
+            }
+        }
+
+        async function switchCameraSource() {
+            const source = document.getElementById('cameraSourceInput').value.trim();
+            if (!source) return;
+            try {
+                const res = await fetch('/api/scanner/switch', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source})
+                });
+                const data = await res.json();
+                alert(`Camera source switched to: ${data.source}`);
+            } catch (e) {
+                alert("Switch error: " + e);
+            }
+        }
+
+        function setCameraQuickSource(val) {
+            document.getElementById('cameraSourceInput').value = val;
+            switchCameraSource();
+        }
+
+        function handleGlobalSearch(event) {
+            if (event.key === 'Enter') {
+                const val = document.getElementById('globalSearchInput').value.trim();
+                if (!val) return;
+                switchTab('catalog');
+                document.getElementById('catalogSearchInput').value = val;
+                filterCatalogData();
+            }
+        }
+
+        // Initialize on Load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark');
+            }
+            lucide.createIcons();
+            await fetchCurrentUser();
+            loadDashboardData();
+            connectWebSocket();
+        });
     </script>
 </body>
 </html>
